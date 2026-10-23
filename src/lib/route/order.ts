@@ -46,10 +46,10 @@ export function orderStops(chosen: Record<SlotName, Candidate>): OrderedStop[] {
       ),
     )
 
-  const best = permutations.reduce((a, b) => {
-    const sum = (o: SlotName[]) => legs(o).reduce((s, d) => s + (d ?? 0), 0)
-    return sum(b) < sum(a) ? b : a
-  })
+  const sum = (o: SlotName[]): number =>
+    legs(o).reduce<number>((total, leg) => total + (leg ?? 0), 0)
+
+  const best = permutations.reduce((a, b) => (sum(b) < sum(a) ? b : a))
 
   const bestLegs = legs(best)
   return best.map((slot, i): OrderedStop => {
