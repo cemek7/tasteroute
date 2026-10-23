@@ -233,6 +233,7 @@ export class FixtureProvider implements TasteProvider {
               entityId,
               avgScore: 1,
               topN: 3 as const,
+              appliesTo: candidates.slice(0, 3).map((c) => c.id),
             })),
           }
         : null,

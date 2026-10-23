@@ -18,20 +18,36 @@ const ctx = (over: Partial<WhyContext> = {}): WhyContext => ({
 })
 
 describe('buildWhy', () => {
-  it('leads with Qloo explainability when the candidate is in the seeded top three', () => {
-    const topRanked = { ...byId('fx-bar-slate'), providerRank: 1 }
-    const { why, evidence } = buildWhy(topRanked, ctx({
-      explainability: { signalEntities: [{ entityId: 'fx-nok', avgScore: 1, topN: 3 }] },
+  it('leads with Qloo explainability when the seeded response returned this candidate', () => {
+    const { why, evidence } = buildWhy(byId('fx-bar-slate'), ctx({
+      explainability: {
+        signalEntities: [
+          { entityId: 'fx-nok', avgScore: 1, topN: 3, appliesTo: ['fx-bar-slate'] },
+        ],
+      },
       seedNames: { 'fx-nok': 'Terrace Nine Kitchen' },
     }))
     expect(evidence[0].kind).toBe('explainability')
     expect(why).toContain('Terrace Nine Kitchen')
   })
 
-  it('withholds explainability from a candidate ranked outside the seeded top three', () => {
-    const lowRanked = { ...byId('fx-bar-slate'), providerRank: 9 }
-    const { evidence } = buildWhy(lowRanked, ctx({
-      explainability: { signalEntities: [{ entityId: 'fx-nok', avgScore: 1, topN: 3 }] },
+  it('withholds explainability from a candidate the seeded response did not return', () => {
+    const { evidence } = buildWhy(byId('fx-bar-slate'), ctx({
+      explainability: {
+        signalEntities: [
+          { entityId: 'fx-nok', avgScore: 1, topN: 3, appliesTo: ['some-other-place'] },
+        ],
+      },
+      seedNames: { 'fx-nok': 'Terrace Nine Kitchen' },
+    }))
+    expect(evidence.some((e) => e.kind === 'explainability')).toBe(false)
+  })
+
+  it('never cites a seed as the reason for recommending that same seed', () => {
+    const { evidence } = buildWhy(byId('fx-nok'), ctx({
+      explainability: {
+        signalEntities: [{ entityId: 'fx-nok', avgScore: 1, topN: 3, appliesTo: ['fx-nok'] }],
+      },
       seedNames: { 'fx-nok': 'Terrace Nine Kitchen' },
     }))
     expect(evidence.some((e) => e.kind === 'explainability')).toBe(false)

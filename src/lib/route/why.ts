@@ -68,13 +68,6 @@ function describe(c: Candidate): string | null {
   return null
 }
 
-const TOP_N_RANK: Record<3 | 5 | 10 | 'all', number> = {
-  3: 3,
-  5: 5,
-  10: 10,
-  all: Number.POSITIVE_INFINITY,
-}
-
 export function buildWhy(
   c: Candidate,
   ctx: WhyContext,
@@ -83,7 +76,11 @@ export function buildWhy(
 
   // 1. Qloo's own explainability, strongest when available.
   for (const signal of ctx.explainability?.signalEntities ?? []) {
-    if (c.providerRank > TOP_N_RANK[signal.topN]) continue
+    // Only the candidates from the response that carried this block. A rank
+    // from a later, unseeded query proves nothing about it.
+    if (!signal.appliesTo.includes(c.id)) continue
+    // "Recommended because Qloo links it to itself" is not a reason.
+    if (signal.entityId === c.id) continue
     const name = ctx.seedNames[signal.entityId]
     if (!name) continue
     evidence.push({

@@ -1,4 +1,6 @@
-import { buildInsightsParams } from './params'
+import 'server-only'
+
+import { buildInsightsParams, buildSearchParams, buildTagsParams } from './params'
 import {
   qlooInsightsSchema,
   qlooSearchSchema,
@@ -70,7 +72,7 @@ export class QlooProvider implements TasteProvider {
   }
 
   async findTags(query: string): Promise<Tag[]> {
-    const params = new URLSearchParams({ 'filter.query': query, take: '6' })
+    const params = buildTagsParams({ 'filter.query': query, take: 6 })
     const raw = await this.get('/v2/tags', params)
     const parsed = qlooTagsSchema.parse(raw)
     return parsed.results.tags.map((t) => ({
@@ -84,7 +86,7 @@ export class QlooProvider implements TasteProvider {
   async seedEntities(names: string[]): Promise<EntityRef[]> {
     const found: EntityRef[] = []
     for (const name of names.slice(0, 5)) {
-      const params = new URLSearchParams({ query: name, take: '1' })
+      const params = buildSearchParams({ query: name, take: 1 })
       const raw = await this.get('/search', params)
       const parsed = qlooSearchSchema.parse(raw)
       const list = Array.isArray(parsed.results)
@@ -202,6 +204,9 @@ function toExplainability(parsed: QlooInsightsResponse): ProviderExplainability 
         entityId: effect.entity_id,
         avgScore: effect.avg_score,
         topN,
+        // Filled by the caller, which is the only place that still holds the
+        // candidate list this block was computed against.
+        appliesTo: [],
       })
     }
   }

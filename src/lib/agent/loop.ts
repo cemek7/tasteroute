@@ -1,4 +1,5 @@
 import { Budget, DEFAULT_MAX_ROUNDS } from './budget'
+import { trimForBudget } from './spend'
 import { createSession, type ToolDefinition } from './tools'
 import { UnknownLocalityError } from '../providers/qloo'
 import type {
@@ -9,6 +10,9 @@ import type {
   TasteProvider,
   TraceEntry,
 } from '../providers/types'
+
+/** Spec cap: a single round never sends more than this much input. */
+export const DEFAULT_MAX_INPUT_TOKENS = 12_000
 
 export const SYSTEM_PROMPT = `You plan a three-stop evening out using Qloo's taste graph.
 
@@ -55,6 +59,7 @@ export type PlanOptions = {
   locality: Locality
   client: ChatClient
   maxRounds?: number
+  maxInputTokens?: number
 }
 
 export type PlanResult =
@@ -64,6 +69,7 @@ export type PlanResult =
 export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
   const { provider, request, locality, client } = opts
   const budget = new Budget(opts.maxRounds ?? DEFAULT_MAX_ROUNDS)
+  const maxInputTokens = opts.maxInputTokens ?? DEFAULT_MAX_INPUT_TOKENS
   const session = createSession({ provider, request, locality })
 
   const messages: ChatMessage[] = [
@@ -91,12 +97,14 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
 
     let toolCalls: ChatToolCall[]
     try {
-      toolCalls = await completeWithRetry(client, messages, session.tools)
+      toolCalls = await completeWithRetry(
+        client,
+        trimForBudget(messages, maxInputTokens),
+        session.tools,
+      )
     } catch (e) {
-      return {
-        error: `The planner could not be reached: ${(e as Error).message}`,
-        trace: session.trace,
-      }
+      console.error('planner call failed', (e as Error).message)
+      return { error: planErrorMessage(e), trace: session.trace }
     }
 
     if (toolCalls.length === 0) break
@@ -154,9 +162,11 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
           return { error: e.message, trace: session.trace }
         }
         // Report it rather than swallowing it: a silent failure here looks
-        // identical to the model simply not searching.
+        // identical to the model simply not searching. The detail goes to the
+        // server log, never to the person reading the page.
+        console.error('backfill search failed', (e as Error).message)
         return {
-          error: `Could not reach Qloo for ${locality.name}: ${(e as Error).message}`,
+          error: `Qloo could not be reached for ${locality.name}. Try again in a moment.`,
           trace: session.trace,
         }
       }
@@ -198,6 +208,24 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
   }
 
   return { route: { ...route, trace: session.trace }, roundsUsed: budget.roundsUsed }
+}
+
+/**
+ * Turn whatever the SDK or Qloo threw into one sentence a person can read. A
+ * raw ZodError is a multi-line dump of issue objects and belongs in the log.
+ */
+function planErrorMessage(e: unknown): string {
+  const raw = e instanceof Error ? e.message : String(e)
+  if (/zod|invalid_type|invalid input/i.test(raw) || raw.includes('\n')) {
+    return 'Qloo returned something TasteRoute could not read. Try again in a moment.'
+  }
+  if (/401|403|api key/i.test(raw)) {
+    return 'The planner is not configured correctly. This is our problem, not yours.'
+  }
+  if (/402|credit|quota|insufficient/i.test(raw)) {
+    return 'The planner has run out of credit for now. Try again later.'
+  }
+  return `The planner could not be reached: ${raw}`
 }
 
 /**

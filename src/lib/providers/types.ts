@@ -56,7 +56,18 @@ export type Candidate = {
 }
 
 export type ProviderExplainability = {
-  signalEntities: { entityId: string; avgScore: number; topN: 3 | 5 | 10 | 'all' }[]
+  signalEntities: {
+    entityId: string
+    avgScore: number
+    topN: 3 | 5 | 10 | 'all'
+    /**
+     * The candidate ids this signal actually explains, taken from the very
+     * response that carried the explainability block. Qloo's effect_on_topN
+     * is relative to one response, so a rank from a later query says nothing
+     * about it.
+     */
+    appliesTo: string[]
+  }[]
 }
 
 export type PlaceResult = {

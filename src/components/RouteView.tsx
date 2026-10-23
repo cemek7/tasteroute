@@ -13,7 +13,13 @@ const CONFIDENCE_NOTE: Record<Route['confidence'], string | null> = {
   weak: 'Qloo returned little to work with here. Treat this as a guess, and see the other options below.',
 }
 
-export function RouteView({ route }: { route: Route }) {
+export function RouteView({
+  route,
+  onSaved,
+}: {
+  route: Route
+  onSaved?: () => void
+}) {
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
   const note = CONFIDENCE_NOTE[route.confidence]
@@ -68,6 +74,7 @@ export function RouteView({ route }: { route: Route }) {
           onClick={() => {
             saveRoute(route)
             setSaved(true)
+            onSaved?.()
             setTimeout(() => setSaved(false), 2000)
           }}
           className="flex-1 rounded-md border px-3 py-2.5 text-sm"

@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import type { Route } from '@/lib/providers/types'
 
-// Abuja first: measured against the live Qloo catalogue it returns the
-// strongest coverage and the most walkable routes of the cities we tried.
+// Suggestions, not limits. Abuja leads because measured against the live Qloo
+// catalogue it returns the strongest coverage and the most walkable routes of
+// the cities we tried.
 const CITIES = ['Abuja', 'Lagos', 'Port Harcourt', 'Nairobi', 'Accra']
 
 const EXAMPLES = [
@@ -57,18 +58,23 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
         <span className="text-xs font-medium uppercase tracking-wide" style={legend}>
           City
         </span>
-        <select
+        {/* Free text with suggestions, not a closed list: Qloo knows far more
+            cities than we can list, and an unknown one already has a clear
+            error path. */}
+        <input
           value={city}
           onChange={(e) => setCity(e.target.value)}
+          list="tasteroute-cities"
+          required
+          maxLength={80}
           className="mt-1 w-full rounded-md border px-3 py-2.5 text-base"
           style={field}
-        >
+        />
+        <datalist id="tasteroute-cities">
           {CITIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
+            <option key={c} value={c} />
           ))}
-        </select>
+        </datalist>
       </label>
 
       <label className="block">

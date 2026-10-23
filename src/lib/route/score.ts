@@ -38,14 +38,19 @@ function tagMatch(c: Candidate, requestedTagIds: string[]): number | null {
 /**
  * Without an anchor this returns null, so the weight redistributes and the
  * first stop is chosen on taste alone rather than on an arbitrary origin.
+ *
+ * Once there IS an anchor, a candidate with no coordinates scores
+ * UNKNOWN_PROXIMITY rather than null. Redistributing the weight made missing
+ * location data a competitive advantage: anything more than about a kilometre
+ * from the anchor lost to an otherwise identical candidate that was simply
+ * unplaceable.
  */
-function proximity(
-  c: Candidate,
-  anchor: ScoreContext['anchor'],
-): number | null {
+const UNKNOWN_PROXIMITY = 0.25
+
+function proximity(c: Candidate, anchor: ScoreContext['anchor']): number | null {
   if (!anchor) return null
   const metres = haversineMetres({ lat: c.lat, lng: c.lng }, anchor)
-  if (metres == null) return null
+  if (metres == null) return UNKNOWN_PROXIMITY
   return Math.max(0, 1 - metres / PROXIMITY_RANGE_M)
 }
 

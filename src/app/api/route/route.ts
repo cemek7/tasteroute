@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createOpenAIClient } from '@/lib/agent/openai-client'
 import { planRoute } from '@/lib/agent/loop'
+import { SpendLimiter } from '@/lib/agent/spend'
 import { hasModelAccess } from '@/lib/env'
 import { buildRoute } from '@/lib/route/build'
 import { FixtureProvider } from '@/lib/providers/fixture'
@@ -9,6 +10,16 @@ import { QlooProvider } from '@/lib/providers/qloo'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
+
+/**
+ * This endpoint is public and unauthenticated, and the credit behind it is
+ * small. Module scope means the counter is per server process: a brake, not a
+ * guarantee, but enough that one scripted loop cannot empty the account and
+ * take the demo offline mid-judging.
+ */
+const limiter = new SpendLimiter({
+  dailyCeiling: Number(process.env.TASTEROUTE_DAILY_ROUTE_CEILING ?? 400),
+})
 
 const bodySchema = z
   .object({
@@ -40,8 +51,10 @@ export async function POST(req: Request) {
   }
   const locality = { name: parsed.city }
 
-  // Without credentials we still answer, from clearly labelled sample data.
-  const useFixtures = !hasModelAccess() || !process.env.QLOO_API_KEY
+  // Without credentials, or past the daily ceiling, we still answer — from
+  // clearly labelled sample data rather than with an error page.
+  const budgetLeft = limiter.tryConsume()
+  const useFixtures = !hasModelAccess() || !process.env.QLOO_API_KEY || !budgetLeft
   if (useFixtures) {
     const provider = new FixtureProvider()
     const { candidates } = await provider.suggestPlaces({ locality: locality.name })
@@ -56,7 +69,10 @@ export async function POST(req: Request) {
       providerKind: 'fixture',
     })
     if ('error' in built) return NextResponse.json({ error: built.reason }, { status: 422 })
-    return NextResponse.json({ route: built })
+    return NextResponse.json({
+      route: built,
+      ...(budgetLeft ? {} : { notice: 'Daily planning limit reached. Showing a sample route.' }),
+    })
   }
 
   try {

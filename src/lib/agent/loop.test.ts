@@ -141,7 +141,7 @@ describe('planRoute', () => {
     expect(result.error).toContain('Nowhereville')
   })
 
-  it('reports a model outage as an error instead of throwing', async () => {
+  it('reports a model outage as a readable error instead of throwing', async () => {
     const broken: ChatClient = {
       async complete() {
         throw new Error('402 insufficient credit')
@@ -150,7 +150,38 @@ describe('planRoute', () => {
     const result = await run(broken)
     expect('error' in result).toBe(true)
     if (!('error' in result)) return
-    expect(result.error).toContain('insufficient credit')
+    expect(result.error).toBe('The planner has run out of credit for now. Try again later.')
+  })
+
+  it('does not hand a raw Zod dump to the user', async () => {
+    const zodish: ChatClient = {
+      async complete() {
+        throw new Error(
+          'ZodError: [\n  {\n    "expected": "string",\n    "code": "invalid_type"\n  }\n]',
+        )
+      },
+    }
+    const result = await run(zodish)
+    expect('error' in result).toBe(true)
+    if (!('error' in result)) return
+    expect(result.error).not.toContain('invalid_type')
+    expect(result.error).not.toContain('\n')
+    expect(result.error).toBe(
+      'Qloo returned something TasteRoute could not read. Try again in a moment.',
+    )
+  })
+
+  it('does not tell the user an api key is wrong in provider wording', async () => {
+    const unauthorised: ChatClient = {
+      async complete() {
+        throw new Error('401 Incorrect API key provided: sk-or-v1-abc')
+      },
+    }
+    const result = await run(unauthorised)
+    expect('error' in result).toBe(true)
+    if (!('error' in result)) return
+    expect(result.error).not.toContain('sk-or-v1')
+    expect(result.error).toContain('not configured correctly')
   })
 
   it('attaches the trace to the returned route', async () => {

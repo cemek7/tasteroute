@@ -3,27 +3,81 @@ import type { Route } from '../providers/types'
 
 const STORAGE_KEY = 'tasteroute.saved.v1'
 
-const stopShape = z.object({
-  order: z.number(),
-  slot: z.enum(['open', 'main', 'close']),
-  candidate: z.object({ id: z.string(), name: z.string() }).loose(),
-  why: z.string(),
-  evidence: z.array(z.object({ kind: z.string(), label: z.string() }).loose()),
+const evidenceShape = z.object({
+  kind: z.enum(['explainability', 'tag', 'affinity', 'descriptor', 'popularity']),
+  label: z.string(),
+  value: z.union([z.string(), z.number()]).optional(),
+  source: z.literal('qloo'),
 })
 
 /**
- * A share link is user-editable, so the payload is validated like any other
- * untrusted input. This is what turns a tampered `?r=` into a clean null
- * rather than a blank page.
+ * Everything the UI reads off a candidate. A share link is user-editable, so
+ * a field the schema does not describe is a field that reaches React
+ * unchecked — which is how an object in `address` blanked the page.
  */
+const candidateShape = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: z.string().nullable().default(null),
+  lat: z.number().nullable().default(null),
+  lng: z.number().nullable().default(null),
+  address: z.string().nullable().default(null),
+  affinity: z.number().nullable().default(null),
+  popularity: z.number().nullable().default(null),
+  isClosed: z.boolean().nullable().default(null),
+  hours: z.unknown().default(null),
+  tags: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        type: z.string(),
+        popularity: z.number().default(0),
+      }),
+    )
+    .default([]),
+  descriptors: z
+    .object({
+      goodFor: z.string().optional(),
+      ambience: z.string().optional(),
+      cuisine: z.string().optional(),
+      cost: z.string().optional(),
+      liveMusic: z.string().optional(),
+      rating: z.number().optional(),
+    })
+    .default({}),
+  providerRank: z.number().default(1),
+  providerRef: z.object({
+    provider: z.enum(['qloo', 'fixture']),
+    entityId: z.string(),
+  }),
+})
+
+const stopShape = z.object({
+  order: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  slot: z.enum(['open', 'main', 'close']),
+  candidate: candidateShape,
+  why: z.string(),
+  evidence: z.array(evidenceShape),
+  walkFromPrev: z
+    .object({ metres: z.number(), minutes: z.number() })
+    .optional(),
+})
+
 const routeShape = z.object({
   id: z.string(),
-  locality: z.object({ name: z.string() }).loose(),
+  locality: z.object({
+    name: z.string(),
+    qlooLocalityId: z.string().optional(),
+    centroid: z.object({ lat: z.number(), lng: z.number() }).optional(),
+  }),
   mood: z.string(),
   createdAt: z.string(),
   stops: z.tuple([stopShape, stopShape, stopShape]),
   confidence: z.enum(['strong', 'ok', 'weak']),
   providerKind: z.enum(['qloo', 'fixture']),
+  alternatives: z.array(candidateShape).default([]),
+  unfilledSlots: z.array(z.enum(['open', 'main', 'close'])).default([]),
 })
 
 function toBase64Url(json: string): string {
@@ -69,15 +123,13 @@ export function decodeRoute(encoded: string): Route | null {
     return null
   }
 
-  if (!routeShape.safeParse(parsed).success) return null
+  const checked = routeShape.safeParse(parsed)
+  if (!checked.success) return null
 
-  const route = parsed as Route
-  return {
-    ...route,
-    trace: [],
-    alternatives: route.alternatives ?? [],
-    unfilledSlots: route.unfilledSlots ?? [],
-  }
+  // Return the VALIDATED data, never the raw object. Passing `parsed` through
+  // after a yes/no check leaves every field the schema does not describe
+  // unchecked, and the UI then renders it.
+  return { ...checked.data, trace: [] } as Route
 }
 
 export function saveRoute(route: Route): void {

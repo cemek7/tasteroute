@@ -156,8 +156,10 @@ describe('QlooProvider', () => {
       locality: 'Lagos',
       entities: ['seed-1'],
     })
+    // appliesTo is empty here by design: only the caller still holds the
+    // candidate list this block was computed against.
     expect(explainability?.signalEntities).toEqual([
-      { entityId: 'seed-1', avgScore: 1, topN: 3 },
+      { entityId: 'seed-1', avgScore: 1, topN: 3, appliesTo: [] },
     ])
   })
 

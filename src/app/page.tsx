@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import { MoodForm } from '@/components/MoodForm'
 import { RouteView } from '@/components/RouteView'
+import { SavedRoutes } from '@/components/SavedRoutes'
 import { decodeRoute } from '@/lib/share/encode'
 import type { Route } from '@/lib/providers/types'
 
 export default function Home() {
   const [route, setRoute] = useState<Route | null>(null)
   const [linkError, setLinkError] = useState<string | null>(null)
+  const [savedVersion, setSavedVersion] = useState(0)
 
   useEffect(() => {
     const encoded = new URLSearchParams(window.location.search).get('r')
@@ -35,7 +37,10 @@ export default function Home() {
       )}
 
       <MoodForm onRoute={setRoute} />
-      {route && <RouteView route={route} />}
+      {route && (
+        <RouteView route={route} onSaved={() => setSavedVersion((v) => v + 1)} />
+      )}
+      <SavedRoutes refreshKey={savedVersion} onOpen={setRoute} />
 
       <footer className="mt-12 text-xs" style={{ color: 'var(--muted)' }}>
         Built by TechClave. Taste data from Qloo.

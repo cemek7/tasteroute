@@ -53,7 +53,7 @@ type Attempt = {
  */
 function fillFrom(
   pool: Candidate[],
-  anchorCandidate: Candidate,
+  anchorCandidate: Candidate | undefined,
   input: BuildInput,
 ): Attempt {
   const chosen = {} as Record<SlotName, Candidate>
@@ -79,7 +79,9 @@ function fillFrom(
 
     // The anchor is forced for its own slot; the rest compete normally.
     const forced =
-      slot === 'main' ? eligible.find((e) => e.c.id === anchorCandidate.id) : undefined
+      slot === 'main' && anchorCandidate
+        ? eligible.find((e) => e.c.id === anchorCandidate.id)
+        : undefined
     const winner = forced ?? eligible[0]
 
     if (!winner) {
@@ -99,9 +101,18 @@ function fillFrom(
   return { chosen, takenIds, totalScore, unfilledSlots }
 }
 
-/** Total walking distance across the ordered stops, in metres. */
+/**
+ * Total walking distance across the ordered stops, in metres. A leg we cannot
+ * measure is priced at UNKNOWN_LEG_M rather than 0: counting it as free made a
+ * route of coordinate-less venues look like a zero-walk evening and win.
+ */
+const UNKNOWN_LEG_M = 3000
+
 function totalWalk(chosen: Record<SlotName, Candidate>): number {
-  return orderStops(chosen).reduce((sum, s) => sum + (s.walkFromPrev?.metres ?? 0), 0)
+  const ordered = orderStops(chosen)
+  return ordered
+    .slice(1)
+    .reduce((sum, s) => sum + (s.walkFromPrev?.metres ?? UNKNOWN_LEG_M), 0)
 }
 
 export function buildRoute(input: BuildInput): Route | BuildFailure {
@@ -119,21 +130,33 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
   const anchorOptions = pool
     .filter((c) => slotsFor(c).includes('main'))
     .map((c) => ({ c, score: scoreCandidate(c, 'main', mainCtx) }))
-    .sort((a, b) => b.score - a.score || a.c.id.localeCompare(b.c.id))
+    // A located anchor comes first regardless of score: without coordinates
+    // the whole route loses its walking information and its clustering.
+    .sort((a, b) => {
+      const located = (x: Candidate) => (x.lat != null && x.lng != null ? 1 : 0)
+      return (
+        located(b.c) - located(a.c) ||
+        b.score - a.score ||
+        a.c.id.localeCompare(b.c.id)
+      )
+    })
     .slice(0, ANCHOR_CANDIDATES)
     .map((e) => e.c)
 
-  const attempts = (anchorOptions.length > 0 ? anchorOptions : [undefined]).map((anchorCandidate) =>
-    anchorCandidate
-      ? fillFrom(pool, anchorCandidate, input)
-      : { chosen: {} as Record<SlotName, Candidate>, takenIds: new Set<string>(), totalScore: 0, unfilledSlots: FILL_ORDER },
-  )
+  // With no main-eligible venue at all, still run one unanchored pass so the
+  // failure names the slots that are genuinely empty rather than all three.
+  const attempts =
+    anchorOptions.length > 0
+      ? anchorOptions.map((anchorCandidate) => fillFrom(pool, anchorCandidate, input))
+      : [fillFrom(pool, undefined, input)]
 
   const complete = attempts.filter((a) => a.unfilledSlots.length === 0)
 
   if (complete.length === 0) {
     // Report the attempt that got furthest, so the message names a real gap.
-    const best = attempts.reduce((a, b) => (b.unfilledSlots.length < a.unfilledSlots.length ? b : a))
+    const best = attempts.reduce((a, b) =>
+      b.unfilledSlots.length < a.unfilledSlots.length ? b : a,
+    )
     return {
       error: 'insufficient',
       unfilledSlots: best.unfilledSlots,

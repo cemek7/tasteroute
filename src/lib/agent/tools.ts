@@ -170,7 +170,20 @@ export function createSession(opts: {
         entities: entityIds,
         take: typeof args.take === 'number' ? args.take : 30,
       })
-      if (res.explainability) explainability = res.explainability
+      if (res.explainability) {
+        // Scope the block to the candidates of THIS response before storing
+        // it, so a later query cannot inherit the claim.
+        const topN = (n: 3 | 5 | 10 | 'all') =>
+          res.candidates
+            .slice(0, n === 'all' ? res.candidates.length : n)
+            .map((c) => c.id)
+        explainability = {
+          signalEntities: res.explainability.signalEntities.map((sig) => ({
+            ...sig,
+            appliesTo: sig.appliesTo.length > 0 ? sig.appliesTo : topN(sig.topN),
+          })),
+        }
+      }
 
       const added = addToPool(res.candidates)
       const assessment = assessSignal(pool)

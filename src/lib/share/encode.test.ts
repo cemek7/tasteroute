@@ -79,3 +79,75 @@ describe('encodeRoute / decodeRoute', () => {
     expect(back?.unfilledSlots).toEqual([])
   })
 })
+
+describe('a well-formed but wrong-typed payload is rejected, not passed through', () => {
+  const tamper = (mutate: (r: Record<string, unknown>) => void): string => {
+    const r = JSON.parse(JSON.stringify(route())) as Record<string, unknown>
+    mutate(r)
+    return Buffer.from(JSON.stringify(r)).toString('base64url')
+  }
+
+  it('rejects a non-array alternatives, which the UI would call .map on', () => {
+    expect(decodeRoute(tamper((r) => { r.alternatives = 'oops' }))).toBeNull()
+    expect(decodeRoute(tamper((r) => { r.alternatives = { length: 1 } }))).toBeNull()
+  })
+
+  it('rejects a walkFromPrev missing metres, which the UI would call toLocaleString on', () => {
+    expect(
+      decodeRoute(
+        tamper((r) => {
+          const stops = r.stops as Record<string, unknown>[]
+          stops[1].walkFromPrev = { minutes: 5 }
+        }),
+      ),
+    ).toBeNull()
+  })
+
+  it('rejects an object where an address string belongs, which React cannot render', () => {
+    expect(
+      decodeRoute(
+        tamper((r) => {
+          const stops = r.stops as Record<string, unknown>[]
+          ;(stops[0].candidate as Record<string, unknown>).address = {}
+        }),
+      ),
+    ).toBeNull()
+  })
+
+  it('rejects an unknown evidence kind, which has no UI label', () => {
+    expect(
+      decodeRoute(
+        tamper((r) => {
+          const stops = r.stops as Record<string, unknown>[]
+          stops[0].evidence = [{ kind: 'made-up', label: 'x', source: 'qloo' }]
+        }),
+      ),
+    ).toBeNull()
+  })
+
+  it('rejects a non-numeric walk duration', () => {
+    expect(
+      decodeRoute(
+        tamper((r) => {
+          const stops = r.stops as Record<string, unknown>[]
+          stops[1].walkFromPrev = { metres: 'far', minutes: 5 }
+        }),
+      ),
+    ).toBeNull()
+  })
+
+  it('returns only validated data, so every surviving field has its declared type', () => {
+    const back = decodeRoute(encodeRoute(route()))
+    expect(back).not.toBeNull()
+    expect(Array.isArray(back?.alternatives)).toBe(true)
+    expect(Array.isArray(back?.unfilledSlots)).toBe(true)
+    for (const stop of back!.stops) {
+      expect(typeof stop.candidate.name).toBe('string')
+      expect(stop.candidate.address === null || typeof stop.candidate.address === 'string').toBe(true)
+      if (stop.walkFromPrev) {
+        expect(typeof stop.walkFromPrev.metres).toBe('number')
+        expect(typeof stop.walkFromPrev.minutes).toBe('number')
+      }
+    }
+  })
+})
