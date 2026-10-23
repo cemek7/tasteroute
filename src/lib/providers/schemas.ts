@@ -45,7 +45,8 @@ const qlooEntity = z.object({
       ambience_description: z.string().nullish(),
       cuisine_description: z.string().nullish(),
       cost_description: z.string().nullish(),
-      live_music: z.string().nullish(),
+      // Qloo sends live_music as a boolean, not a description.
+      live_music: z.boolean().nullish(),
     })
     .loose()
     .nullish()

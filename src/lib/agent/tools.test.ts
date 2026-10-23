@@ -106,4 +106,15 @@ describe('createSession', () => {
   it('rejects an unknown tool name', async () => {
     await expect(session().dispatch('rm_rf', {})).rejects.toThrow(/unknown tool/i)
   })
+
+  it('tells the agent to search first when finalize_route is called on an empty pool', async () => {
+    const s = session()
+    const out = (await s.dispatch('finalize_route', {})) as {
+      ok: boolean
+      reason?: string
+      hint?: string
+    }
+    expect(out.ok).toBe(false)
+    expect(out.hint).toMatch(/suggest_places/)
+  })
 })

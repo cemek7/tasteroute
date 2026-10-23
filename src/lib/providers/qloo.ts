@@ -70,7 +70,7 @@ export class QlooProvider implements TasteProvider {
   }
 
   async findTags(query: string): Promise<Tag[]> {
-    const params = new URLSearchParams({ 'filter.query': query, take: '12' })
+    const params = new URLSearchParams({ 'filter.query': query, take: '6' })
     const raw = await this.get('/v2/tags', params)
     const parsed = qlooTagsSchema.parse(raw)
     return parsed.results.tags.map((t) => ({
@@ -156,7 +156,7 @@ function toCandidate(e: QlooEntity, index: number): Candidate {
       ambience: p.ambience_description ?? undefined,
       cuisine: p.cuisine_description ?? undefined,
       cost: p.cost_description ?? undefined,
-      liveMusic: p.live_music ?? undefined,
+      liveMusic: p.live_music === true ? 'live music' : undefined,
       rating: p.business_rating ?? undefined,
     },
     providerRank: index + 1,
@@ -173,12 +173,19 @@ function goodForPhrase(raw: unknown): string | undefined {
   return names.length > 0 ? names.join(', ') : undefined
 }
 
-/** The most specific genre tag is the closest thing Qloo gives to a category. */
+/**
+ * The most specific genre tag is the closest thing Qloo gives to a category,
+ * and Qloo lists them in no guaranteed order: a cocktail bar carries both
+ * `...:place:restaurant` and `...:place:restaurant:cocktail_bar`. Depth, not
+ * position, decides which one describes the venue.
+ */
 function categoryOf(tags: { id: string; type: string }[]): string | null {
-  const genre = tags.find((t) => t.type.startsWith('urn:tag:genre:place'))
-  if (!genre) return null
-  const parts = genre.id.split(':')
-  return parts.at(-1) ?? null
+  const genres = tags.filter((t) => t.type.startsWith('urn:tag:genre:place'))
+  if (genres.length === 0) return null
+  const deepest = genres.reduce((a, b) =>
+    b.id.split(':').length > a.id.split(':').length ? b : a,
+  )
+  return deepest.id.split(':').at(-1) ?? null
 }
 
 function toExplainability(parsed: QlooInsightsResponse): ProviderExplainability | null {

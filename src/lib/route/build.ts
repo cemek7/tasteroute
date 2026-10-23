@@ -34,20 +34,41 @@ export type BuildFailure = {
 /** main first: it anchors the evening, so it gets the best of the pool. */
 const FILL_ORDER: SlotName[] = ['main', 'close', 'open']
 
-export function buildRoute(input: BuildInput): Route | BuildFailure {
-  const assessment = assessSignal(input.candidates)
+/** How many main-slot candidates to try as the anchor. */
+const ANCHOR_CANDIDATES = 5
 
-  const pool = input.candidates.filter((c) => c.isClosed !== true)
+/** A kilometre of extra walking is worth this much route score. */
+const WALK_COST_PER_KM = 0.05
+
+type Attempt = {
+  chosen: Record<SlotName, Candidate>
+  takenIds: Set<string>
+  totalScore: number
+  unfilledSlots: SlotName[]
+}
+
+/**
+ * Fill the three slots, clustering the second and third around the given
+ * anchor. Returns what it managed, so the caller can compare attempts.
+ */
+function fillFrom(
+  pool: Candidate[],
+  anchorCandidate: Candidate,
+  input: BuildInput,
+): Attempt {
   const chosen = {} as Record<SlotName, Candidate>
   const usedCategories: string[] = []
   const takenIds = new Set<string>()
   const unfilledSlots: SlotName[] = []
+  let totalScore = 0
+  let anchor: { lat: number | null; lng: number | null } | undefined
 
   for (const slot of FILL_ORDER) {
     const ctx: ScoreContext = {
       requestedTagIds: input.requestedTagIds,
       timeWindow: input.request.timeWindow,
       usedCategories,
+      anchor,
     }
 
     const eligible = pool
@@ -56,24 +77,82 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
       // id is the tiebreak so the same pool always yields the same route.
       .sort((a, b) => b.score - a.score || a.c.id.localeCompare(b.c.id))
 
-    const winner = eligible[0]?.c
+    // The anchor is forced for its own slot; the rest compete normally.
+    const forced =
+      slot === 'main' ? eligible.find((e) => e.c.id === anchorCandidate.id) : undefined
+    const winner = forced ?? eligible[0]
+
     if (!winner) {
       unfilledSlots.push(slot)
       continue
     }
 
-    chosen[slot] = winner
-    takenIds.add(winner.id)
-    if (winner.category) usedCategories.push(winner.category)
-  }
-
-  if (unfilledSlots.length > 0) {
-    return {
-      error: 'insufficient',
-      unfilledSlots,
-      reason: `Could not fill the ${unfilledSlots.join(' or ')} part of the evening from what Qloo returned.`,
+    chosen[slot] = winner.c
+    totalScore += winner.score
+    takenIds.add(winner.c.id)
+    if (winner.c.category) usedCategories.push(winner.c.category)
+    if (!anchor && winner.c.lat != null && winner.c.lng != null) {
+      anchor = { lat: winner.c.lat, lng: winner.c.lng }
     }
   }
+
+  return { chosen, takenIds, totalScore, unfilledSlots }
+}
+
+/** Total walking distance across the ordered stops, in metres. */
+function totalWalk(chosen: Record<SlotName, Candidate>): number {
+  return orderStops(chosen).reduce((sum, s) => sum + (s.walkFromPrev?.metres ?? 0), 0)
+}
+
+export function buildRoute(input: BuildInput): Route | BuildFailure {
+  const assessment = assessSignal(input.candidates)
+  const pool = input.candidates.filter((c) => c.isClosed !== true)
+
+  // The highest-scoring restaurant can sit in a far suburb, which drags the
+  // whole evening out there. Try the best few as the anchor and keep the route
+  // that is best overall once walking is priced in.
+  const mainCtx: ScoreContext = {
+    requestedTagIds: input.requestedTagIds,
+    timeWindow: input.request.timeWindow,
+    usedCategories: [],
+  }
+  const anchorOptions = pool
+    .filter((c) => slotsFor(c).includes('main'))
+    .map((c) => ({ c, score: scoreCandidate(c, 'main', mainCtx) }))
+    .sort((a, b) => b.score - a.score || a.c.id.localeCompare(b.c.id))
+    .slice(0, ANCHOR_CANDIDATES)
+    .map((e) => e.c)
+
+  const attempts = (anchorOptions.length > 0 ? anchorOptions : [undefined]).map((anchorCandidate) =>
+    anchorCandidate
+      ? fillFrom(pool, anchorCandidate, input)
+      : { chosen: {} as Record<SlotName, Candidate>, takenIds: new Set<string>(), totalScore: 0, unfilledSlots: FILL_ORDER },
+  )
+
+  const complete = attempts.filter((a) => a.unfilledSlots.length === 0)
+
+  if (complete.length === 0) {
+    // Report the attempt that got furthest, so the message names a real gap.
+    const best = attempts.reduce((a, b) => (b.unfilledSlots.length < a.unfilledSlots.length ? b : a))
+    return {
+      error: 'insufficient',
+      unfilledSlots: best.unfilledSlots,
+      reason: `Could not fill the ${best.unfilledSlots.join(' or ')} part of the evening from what Qloo returned.`,
+    }
+  }
+
+  // Price the walking in, then take the best whole evening. Ties break on the
+  // stop ids so the same pool always yields the same route.
+  const best = complete.reduce((a, b) => {
+    const value = (x: Attempt) =>
+      x.totalScore - (totalWalk(x.chosen) / 1000) * WALK_COST_PER_KM
+    const diff = value(b) - value(a)
+    if (diff > 0) return b
+    if (diff < 0) return a
+    return b.chosen.main.id.localeCompare(a.chosen.main.id) < 0 ? b : a
+  })
+
+  const { chosen, takenIds } = best
 
   const ordered = orderStops(chosen)
   const whyCtx = {

@@ -247,4 +247,48 @@ describe('QlooProvider', () => {
     })
     expect(candidates[0].descriptors.goodFor).toBe('Large Group, Anniversary')
   })
+
+  it('reads live_music as the boolean Qloo actually sends', async () => {
+    const fetchImpl = async () =>
+      ok({
+        success: true,
+        results: {
+          entities: [
+            {
+              entity_id: 'a',
+              name: 'Brass Room',
+              tags: [],
+              properties: { live_music: true, business_rating: 4 },
+            },
+            {
+              entity_id: 'b',
+              name: 'Quiet Cafe',
+              tags: [],
+              properties: { live_music: false },
+            },
+          ],
+        },
+      })
+    const { candidates } = await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({
+      locality: 'Lagos',
+    })
+    expect(candidates[0].descriptors.liveMusic).toBe('live music')
+    expect(candidates[1].descriptors.liveMusic).toBeUndefined()
+  })
+
+  it('accepts an integer business_rating as well as a float', async () => {
+    const fetchImpl = async () =>
+      ok({
+        success: true,
+        results: {
+          entities: [
+            { entity_id: 'a', name: 'A', tags: [], properties: { business_rating: 4 } },
+          ],
+        },
+      })
+    const { candidates } = await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({
+      locality: 'Lagos',
+    })
+    expect(candidates[0].descriptors.rating).toBe(4)
+  })
 })

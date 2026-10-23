@@ -1,19 +1,26 @@
 import type { Candidate, SlotName } from '../providers/types'
+import { haversineMetres } from './order'
 import { slotFit } from './slots'
 
 export type ScoreContext = {
   requestedTagIds: string[]
   timeWindow: { startHour: number; endHour: number }
   usedCategories: string[]
+  /** The first chosen stop. Later stops are pulled towards it. */
+  anchor?: { lat: number | null; lng: number | null }
 }
 
 const WEIGHTS = {
-  affinity: 0.4,
-  tag: 0.3,
-  slot: 0.15,
-  descriptor: 0.1,
-  popularity: 0.05,
+  affinity: 0.35,
+  tag: 0.25,
+  slot: 0.13,
+  proximity: 0.15,
+  descriptor: 0.08,
+  popularity: 0.04,
 } as const
+
+/** Full marks within a block, nothing beyond a 3km walk. */
+const PROXIMITY_RANGE_M = 3000
 
 const PENALTY = {
   duplicateCategory: 0.25,
@@ -26,6 +33,20 @@ function tagMatch(c: Candidate, requestedTagIds: string[]): number | null {
   const own = new Set(c.tags.map((t) => t.id))
   const hits = requestedTagIds.filter((id) => own.has(id)).length
   return hits / requestedTagIds.length
+}
+
+/**
+ * Without an anchor this returns null, so the weight redistributes and the
+ * first stop is chosen on taste alone rather than on an arbitrary origin.
+ */
+function proximity(
+  c: Candidate,
+  anchor: ScoreContext['anchor'],
+): number | null {
+  if (!anchor) return null
+  const metres = haversineMetres({ lat: c.lat, lng: c.lng }, anchor)
+  if (metres == null) return null
+  return Math.max(0, 1 - metres / PROXIMITY_RANGE_M)
 }
 
 function descriptorMatch(c: Candidate): number | null {
@@ -97,6 +118,7 @@ export function scoreCandidate(
   push(WEIGHTS.affinity, c.affinity)
   push(WEIGHTS.tag, tagMatch(c, ctx.requestedTagIds))
   push(WEIGHTS.slot, slotFit(c, slot))
+  push(WEIGHTS.proximity, proximity(c, ctx.anchor))
   push(WEIGHTS.descriptor, descriptorMatch(c))
   push(WEIGHTS.popularity, c.popularity)
 

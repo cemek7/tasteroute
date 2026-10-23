@@ -7,6 +7,7 @@ import type {
   ProviderExplainability,
   Route,
   RouteRequest,
+  SlotName,
   TasteProvider,
   TraceEntry,
 } from '../providers/types'
@@ -84,6 +85,18 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
 ]
 
+/**
+ * Plain-language queries that reliably find a venue for each slot. Used only
+ * when the model's own taste search left a slot empty: a three-stop route
+ * needs all three kinds of place, and that is our guarantee to make, not the
+ * model's.
+ */
+const SLOT_QUERIES: Record<SlotName, string[]> = {
+  open: ['cafe', 'coffee', 'bakery'],
+  main: ['restaurant', 'cuisine'],
+  close: ['cocktail bar', 'lounge', 'bar'],
+}
+
 export type AgentSession = {
   tools: ToolDefinition[]
   pool: Candidate[]
@@ -91,6 +104,8 @@ export type AgentSession = {
   finalRoute: Route | null
   requestedTagIds: string[]
   dispatch(name: string, args: Record<string, unknown>): Promise<unknown>
+  /** Searches for the named slots with canonical queries. Not model-facing. */
+  backfillSlots(slots: SlotName[]): Promise<void>
 }
 
 export function createSession(opts: {
@@ -177,6 +192,17 @@ export function createSession(opts: {
     },
 
     async finalize_route() {
+      if (pool.length === 0) {
+        return {
+          result: {
+            ok: false,
+            reason: 'No places have been gathered yet.',
+            hint: 'Call suggest_places at least once before finalize_route.',
+          },
+          summary: 'refused: pool is empty',
+        }
+      }
+
       const built = buildRoute({
         candidates: pool,
         request,
@@ -212,7 +238,7 @@ export function createSession(opts: {
     },
   }
 
-  return {
+  const session: AgentSession = {
     tools: TOOL_DEFINITIONS,
     pool,
     trace,
@@ -220,6 +246,39 @@ export function createSession(opts: {
       return finalRoute
     },
     requestedTagIds,
+
+    async backfillSlots(slots) {
+      const started = Date.now()
+      const filled: string[] = []
+
+      for (const slot of slots) {
+        for (const query of SLOT_QUERIES[slot]) {
+          const tags = await provider.findTags(query)
+          if (tags.length === 0) continue
+          const res = await provider.suggestPlaces({
+            locality: locality.name,
+            tags: tags.slice(0, 3).map((t) => ({ id: t.id })),
+            take: 30,
+          })
+          addToPool(res.candidates)
+          if (assessSignal(pool).perSlot[slot] > 0) {
+            filled.push(slot)
+            break
+          }
+        }
+      }
+
+      trace.push({
+        at: new Date().toISOString(),
+        tool: 'backfill_slots',
+        argsSummary: JSON.stringify({ slots }),
+        resultSummary: filled.length
+          ? `filled ${filled.join(', ')}, pool ${pool.length}`
+          : `found nothing for ${slots.join(', ')}`,
+        ms: Date.now() - started,
+      })
+    },
+
     async dispatch(name, args) {
       const handler = handlers[name]
       if (!handler) throw new Error(`Unknown tool: ${name}`)
@@ -235,4 +294,6 @@ export function createSession(opts: {
       return result
     },
   }
+
+  return session
 }
