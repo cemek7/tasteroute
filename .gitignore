@@ -1,0 +1,17 @@
+# secrets
+.env
+.env.local
+.env.*.local
+
+# deps / build
+node_modules/
+.next/
+out/
+dist/
+coverage/
+
+# provider response data must never enter the public repo
+qloo-cache/
+*.qloo.json
+
+.DS_Store
