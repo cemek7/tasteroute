@@ -9,6 +9,8 @@ node_modules/
 out/
 dist/
 coverage/
+next-env.d.ts
+*.tsbuildinfo
 
 # provider response data must never enter the public repo
 qloo-cache/
