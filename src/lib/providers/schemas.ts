@@ -2,8 +2,8 @@ import { z } from 'zod'
 
 const geocode = z
   .object({
-    latitude: z.number().optional(),
-    longitude: z.number().optional(),
+    latitude: z.number().nullish(),
+    longitude: z.number().nullish(),
   })
   .loose()
 
@@ -11,44 +11,52 @@ const qlooTag = z.object({
   id: z.string(),
   name: z.string(),
   type: z.string(),
-  popularity: z.number().optional(),
+  popularity: z.number().nullish(),
 })
 
 const qlooEntity = z.object({
   entity_id: z.string(),
   name: z.string(),
-  type: z.string().optional(),
-  subtype: z.string().optional(),
-  popularity: z.number().optional(),
+  type: z.string().nullish(),
+  subtype: z.string().nullish(),
+  popularity: z.number().nullish(),
   location: z
-    .object({ lat: z.number().optional(), lon: z.number().optional() })
+    .object({ lat: z.number().nullish(), lon: z.number().nullish() })
     .loose()
-    .optional(),
-  tags: z.array(qlooTag).optional().default([]),
+    .nullish(),
+  tags: z
+    .array(qlooTag)
+    .nullish()
+    .transform((t) => t ?? []),
+  // Qloo sends explicit null for an absent property rather than omitting the
+  // key, so every field here is nullish, not merely optional.
   properties: z
     .object({
-      address: z.string().optional(),
-      geocode: geocode.optional(),
-      hours: z.unknown().optional(),
-      business_rating: z.number().optional(),
-      is_closed: z.boolean().optional(),
-      good_for: z.string().optional(),
-      keywords: z.unknown().optional(),
-      ambience_description: z.string().optional(),
-      cuisine_description: z.string().optional(),
-      cost_description: z.string().optional(),
-      live_music: z.string().optional(),
+      address: z.string().nullish(),
+      geocode: geocode.nullish(),
+      hours: z.unknown().nullish(),
+      business_rating: z.number().nullish(),
+      is_closed: z.boolean().nullish(),
+      // Qloo returns good_for as an array of ambience/event tags, not a string.
+      good_for: z
+        .array(z.object({ name: z.string() }).loose())
+        .nullish(),
+      keywords: z.unknown().nullish(),
+      ambience_description: z.string().nullish(),
+      cuisine_description: z.string().nullish(),
+      cost_description: z.string().nullish(),
+      live_music: z.string().nullish(),
     })
     .loose()
-    .optional()
-    .default({}),
+    .nullish()
+    .transform((p) => p ?? {}),
   query: z
     .object({
-      affinity: z.number().optional(),
-      distance: z.number().optional(),
+      affinity: z.number().nullish(),
+      distance: z.number().nullish(),
     })
     .loose()
-    .optional(),
+    .nullish(),
 })
 
 const explainabilityEffect = z.array(
@@ -59,7 +67,12 @@ export const qlooInsightsSchema = z.object({
   success: z.boolean().optional(),
   warnings: z.array(z.object({ type: z.string() }).loose()).optional(),
   results: z
-    .object({ entities: z.array(qlooEntity).optional().default([]) })
+    .object({
+      entities: z
+        .array(qlooEntity)
+        .nullish()
+        .transform((e) => e ?? []),
+    })
     .loose(),
   query: z
     .object({
@@ -85,7 +98,12 @@ export const qlooInsightsSchema = z.object({
 export const qlooTagsSchema = z.object({
   success: z.boolean().optional(),
   results: z
-    .object({ tags: z.array(qlooTag).optional().default([]) })
+    .object({
+      tags: z
+        .array(qlooTag)
+        .nullish()
+        .transform((t) => t ?? []),
+    })
     .loose(),
 })
 
@@ -93,7 +111,14 @@ export const qlooSearchSchema = z.object({
   results: z
     .union([
       z.array(qlooEntity),
-      z.object({ entities: z.array(qlooEntity).optional().default([]) }).loose(),
+      z
+        .object({
+          entities: z
+            .array(qlooEntity)
+            .nullish()
+            .transform((e) => e ?? []),
+        })
+        .loose(),
     ])
     .optional(),
 })

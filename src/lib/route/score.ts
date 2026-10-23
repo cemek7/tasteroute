@@ -39,12 +39,48 @@ function descriptorMatch(c: Candidate): number | null {
   return Math.min(1, filled / 3)
 }
 
-/** True when the venue is known to be shut during the whole requested window. */
+/**
+ * Qloo returns hours as a weekday map, each day an array of
+ * `{ opens: "T17:00:00" | null, closed: boolean, closes: "T23:30:00" | null }`.
+ * We do not know which day the outing falls on, so we take the union of every
+ * published open range and ask whether any of them overlaps the window.
+ */
+function openRanges(hours: unknown): { from: number; to: number }[] {
+  if (hours == null || typeof hours !== 'object') return []
+  const ranges: { from: number; to: number }[] = []
+
+  for (const day of Object.values(hours as Record<string, unknown>)) {
+    if (!Array.isArray(day)) continue
+    for (const entry of day) {
+      const e = entry as { opens?: unknown; closes?: unknown; closed?: unknown }
+      if (e.closed === true) continue
+      const from = parseHour(e.opens)
+      const to = parseHour(e.closes)
+      if (from == null || to == null) continue
+      // A close time at or before the open time means it runs past midnight.
+      ranges.push({ from, to: to <= from ? to + 24 : to })
+    }
+  }
+  return ranges
+}
+
+function parseHour(raw: unknown): number | null {
+  if (typeof raw !== 'string') return null
+  const m = /T?(\d{1,2}):/.exec(raw)
+  if (!m) return null
+  const hour = Number(m[1])
+  return Number.isFinite(hour) ? hour : null
+}
+
+/**
+ * True only when the venue publishes hours AND none of them reach the
+ * requested window. A venue with no published hours is missing data, not
+ * evidence that it is shut.
+ */
 function outsideWindow(c: Candidate, w: ScoreContext['timeWindow']): boolean {
-  if (c.hours == null) return false
-  const h = c.hours as { openHour?: number; closeHour?: number }
-  if (typeof h.openHour !== 'number' || typeof h.closeHour !== 'number') return false
-  return h.closeHour <= w.startHour || h.openHour >= w.endHour
+  const ranges = openRanges(c.hours)
+  if (ranges.length === 0) return false
+  return !ranges.some((r) => r.from < w.endHour && r.to > w.startHour)
 }
 
 export function scoreCandidate(

@@ -67,13 +67,6 @@ describe('scoreCandidate', () => {
     expect(new Set(runs).size).toBe(1)
   })
 
-  it('penalises a venue shut for the whole requested window', () => {
-    const c = { ...base('fx-nok'), hours: { openHour: 7, closeHour: 15 } }
-    expect(scoreCandidate(base('fx-nok'), 'main', ctx())).toBeGreaterThan(
-      scoreCandidate(c, 'main', ctx()),
-    )
-  })
-
   it('returns a finite number for a candidate missing every optional field', () => {
     const bare: Candidate = {
       id: 'bare',
@@ -92,5 +85,49 @@ describe('scoreCandidate', () => {
       providerRef: { provider: 'fixture', entityId: 'bare' },
     }
     expect(Number.isFinite(scoreCandidate(bare, 'main', ctx()))).toBe(true)
+  })
+})
+
+describe('scoreCandidate with the weekday hours map Qloo actually returns', () => {
+  const withHours = (hours: unknown): Candidate => ({ ...base('fx-nok'), hours })
+
+  it('penalises a venue whose every open day ends before the window starts', () => {
+    const daytimeOnly = withHours({
+      monday: [{ opens: 'T07:00:00', closed: false, closes: 'T15:00:00' }],
+      tuesday: [{ opens: 'T07:00:00', closed: false, closes: 'T15:00:00' }],
+    })
+    expect(scoreCandidate(base('fx-nok'), 'main', ctx())).toBeGreaterThan(
+      scoreCandidate(daytimeOnly, 'main', ctx()),
+    )
+  })
+
+  it('does not penalise a venue open during the window', () => {
+    const evening = withHours({
+      friday: [{ opens: 'T17:00:00', closed: false, closes: 'T23:30:00' }],
+    })
+    expect(scoreCandidate(evening, 'main', ctx())).toBe(
+      scoreCandidate(base('fx-nok'), 'main', ctx()),
+    )
+  })
+
+  it('treats a close time past midnight as spanning the window', () => {
+    const lateNight = withHours({
+      saturday: [{ opens: 'T20:00:00', closed: false, closes: 'T02:00:00' }],
+    })
+    expect(scoreCandidate(lateNight, 'main', ctx())).toBe(
+      scoreCandidate(base('fx-nok'), 'main', ctx()),
+    )
+  })
+
+  it('does not penalise when every day is marked closed with null times', () => {
+    // Qloo returns this for places with no published hours; it is missing
+    // data, not evidence the venue is shut.
+    const noPublishedHours = withHours({
+      friday: [{ opens: null, closed: true, closes: null }],
+      monday: [{ opens: null, closed: true, closes: null }],
+    })
+    expect(scoreCandidate(noPublishedHours, 'main', ctx())).toBe(
+      scoreCandidate(base('fx-nok'), 'main', ctx()),
+    )
   })
 })
