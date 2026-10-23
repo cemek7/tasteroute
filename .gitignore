@@ -15,3 +15,6 @@ qloo-cache/
 *.qloo.json
 
 .DS_Store
+
+# sdd scratch workspace
+.superpowers/
