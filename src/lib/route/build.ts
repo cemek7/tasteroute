@@ -217,6 +217,46 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
 
   const narrative = buildNarrative(stops, input.request.timeWindow)
 
+  // Runners-up, scored when the route was built. Filtered here so the client
+  // cannot assemble an invalid route: no place already used, and no category
+  // another stop holds.
+  const ALTERNATIVES_PER_SLOT = 4
+  // main is filled first, so it is the anchor the rest of the route clustered
+  // around. Alternatives are scored against the same point.
+  const anchor =
+    chosen.main.lat != null && chosen.main.lng != null
+      ? { lat: chosen.main.lat, lng: chosen.main.lng }
+      : undefined
+  const alternativesBySlot = (['open', 'main', 'close'] as const).reduce(
+    (acc, slot) => {
+      const usedByOthers = (['open', 'main', 'close'] as const)
+        .filter((s) => s !== slot)
+        .map((s) => chosen[s].category)
+        .filter((c): c is string => !!c)
+      acc[slot] = pool
+        .filter(
+          (c) =>
+            !takenIds.has(c.id) &&
+            slotsFor(c).includes(slot) &&
+            !usedByOthers.includes(c.category ?? ''),
+        )
+        .map((c) => ({
+          c,
+          score: scoreCandidate(c, slot, {
+            requestedTagIds: input.requestedTagIds,
+            timeWindow: input.request.timeWindow,
+            usedCategories: usedByOthers,
+            anchor,
+          }),
+        }))
+        .sort((a, b) => b.score - a.score || a.c.id.localeCompare(b.c.id))
+        .slice(0, ALTERNATIVES_PER_SLOT)
+        .map((e) => e.c)
+      return acc
+    },
+    { open: [], main: [], close: [] } as Record<SlotName, Candidate[]>,
+  )
+
   const alternatives =
     confidence === 'weak'
       ? pool.filter((c) => !takenIds.has(c.id)).slice(0, 6)
@@ -238,5 +278,6 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
     intentEcho: input.intentEcho,
     narrative,
     narrativeWindow: input.request.timeWindow,
+    alternativesBySlot,
   }
 }

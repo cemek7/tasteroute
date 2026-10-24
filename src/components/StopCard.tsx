@@ -1,4 +1,7 @@
-import type { Stop } from '@/lib/providers/types'
+'use client'
+
+import { useState } from 'react'
+import type { Candidate, Stop } from '@/lib/providers/types'
 
 const SLOT_LABEL: Record<Stop['slot'], string> = {
   open: 'Start',
@@ -14,9 +17,17 @@ const EVIDENCE_LABEL: Record<Stop['evidence'][number]['kind'], string> = {
   popularity: 'popularity',
 }
 
-export function StopCard({ stop }: { stop: Stop }) {
+export function StopCard({
+  stop,
+  alternatives = [],
+  onSwap,
+}: {
+  stop: Stop
+  alternatives?: Candidate[]
+  onSwap?: (candidateId: string) => void
+}) {
+  const [showSwap, setShowSwap] = useState(false)
   const walk = stop.walkFromPrev
-
   const detail = stop.candidate.detail
 
   return (
@@ -99,6 +110,40 @@ export function StopCard({ stop }: { stop: Stop }) {
             </li>
           ))}
         </ul>
+      )}
+      {onSwap && alternatives.length > 0 && (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setShowSwap(!showSwap)}
+            className="text-xs underline"
+            style={{ color: 'var(--muted)' }}
+          >
+            {showSwap ? 'keep this one' : 'swap this stop'}
+          </button>
+          {showSwap && (
+            <ul className="mt-2 space-y-1">
+              {alternatives.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSwap(false)
+                      onSwap(c.id)
+                    }}
+                    className="w-full rounded border px-2 py-1.5 text-left text-xs"
+                    style={{ borderColor: 'var(--border)', color: 'var(--fg)' }}
+                  >
+                    {c.name}
+                    {c.detail?.neighborhood ? (
+                      <span style={{ color: 'var(--muted)' }}> · {c.detail.neighborhood}</span>
+                    ) : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
       </div>
     </li>

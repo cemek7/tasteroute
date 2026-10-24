@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Route } from '@/lib/providers/types'
 import { encodeRoute, saveRoute } from '@/lib/share/encode'
+import { swapStop } from '@/lib/route/swap'
 import { IntentEchoPanel } from './IntentEchoPanel'
 import { ProviderBanner } from './ProviderBanner'
 import { StopCard } from './StopCard'
@@ -15,12 +16,16 @@ const CONFIDENCE_NOTE: Record<Route['confidence'], string | null> = {
 }
 
 export function RouteView({
-  route,
+  route: planned,
   onSaved,
 }: {
   route: Route
   onSaved?: () => void
 }) {
+  // Held locally so a swap re-renders without replanning.
+  const [route, setRoute] = useState(planned)
+  useEffect(() => setRoute(planned), [planned])
+
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
   const note = CONFIDENCE_NOTE[route.confidence]
@@ -64,7 +69,12 @@ export function RouteView({
 
       <ol className="mt-4 space-y-3">
         {route.stops.map((s) => (
-          <StopCard key={`${s.order}-${s.candidate.id}`} stop={s} />
+          <StopCard
+            key={`${s.order}-${s.candidate.id}`}
+            stop={s}
+            alternatives={route.alternativesBySlot[s.slot]}
+            onSwap={(id) => setRoute(swapStop(route, s.slot, id))}
+          />
         ))}
       </ol>
 

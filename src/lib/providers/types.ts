@@ -219,4 +219,6 @@ export type Route = {
   narrative: { line: string; evidence: Evidence[] }
   /** Kept so a swap can rebuild the narrative without the original request. */
   narrativeWindow: { startHour: number; endHour: number }
+  /** Scored runners-up per slot, already filtered so a swap stays valid. */
+  alternativesBySlot: Record<SlotName, Candidate[]>
 }

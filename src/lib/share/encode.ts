@@ -109,6 +109,13 @@ const routeShape = z.object({
   narrativeWindow: z
     .object({ startHour: z.number(), endHour: z.number() })
     .default({ startHour: 18, endHour: 23 }),
+  alternativesBySlot: z
+    .object({
+      open: z.array(candidateShape),
+      main: z.array(candidateShape),
+      close: z.array(candidateShape),
+    })
+    .default({ open: [], main: [], close: [] }),
 })
 
 function toBase64Url(json: string): string {
