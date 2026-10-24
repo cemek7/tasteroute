@@ -88,5 +88,14 @@ export function constraintsFromIntent(intent: Intent): {
     applied.push({ label: CONSTRAINT_LABELS.excludeTags, detail: intent.avoid.join(', ') })
   }
 
+  if (intent.demographics?.ageBand || intent.demographics?.gender) {
+    constraints.demographics = {
+      ageBand: intent.demographics.ageBand,
+      gender: intent.demographics.gender,
+    }
+    // Deliberately NOT pushed to `applied`: echoing somebody's age and gender
+    // back at them on a results page is not a feature.
+  }
+
   return { constraints, applied }
 }

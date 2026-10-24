@@ -79,7 +79,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: result.error, trace: result.trace }, { status: 422 })
     }
     return NextResponse.json({
-      route: { ...result.route, intentEcho: mergeEcho(applied, result.ignored) },
+      route: {
+        ...result.route,
+        // The loop already put the resolved preference labels on the route;
+        // the constraints are added here. Dropping either half would hide
+        // half of what the app actually did.
+        intentEcho: mergeEcho(
+          [...applied, ...result.route.intentEcho.applied],
+          result.ignored,
+        ),
+      },
       roundsUsed: result.roundsUsed,
     })
   } catch (e) {

@@ -1,6 +1,6 @@
 import { Budget, DEFAULT_MAX_ROUNDS } from './budget'
 import { trimForBudget } from './spend'
-import { createSession, type ToolDefinition } from './tools'
+import { createSession, resolvePreferenceTags, type ToolDefinition } from './tools'
 import { cityCentre, RELAX_LABELS, relaxOnce } from '../intent/relax'
 import { UnknownLocalityError } from '../providers/qloo'
 import type {
@@ -94,6 +94,20 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
 
   const session = createSession({ provider, request, locality, constraints })
 
+  // Resolve the stated preferences into real Qloo tags and seed the pool with
+  // them, so the agent spends its rounds refining rather than rediscovering
+  // what the person already told us.
+  const preferences = await resolvePreferenceTags(provider, request.intent)
+  if (preferences.tagIds.length > 0) {
+    try {
+      await session.dispatch('suggest_places', { tagIds: preferences.tagIds })
+    } catch (e) {
+      if (e instanceof UnknownLocalityError) {
+        return { error: e.message, trace: session.trace }
+      }
+    }
+  }
+
   const clarified = request.intent.clarified
   const messages: ChatMessage[] = [
     {
@@ -181,9 +195,9 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
   if (!session.finalRoute) {
     if (session.pool.length === 0) {
       try {
-        await session.dispatch('suggest_places', {
-          tagIds: session.requestedTagIds.slice(0, 5),
-        })
+        // Untagged on purpose. The pool is empty, which means the tagged
+        // searches returned nothing — retrying them would fail the same way.
+        await session.dispatch('suggest_places', {})
       } catch (e) {
         if (e instanceof UnknownLocalityError) {
           return { error: e.message, trace: session.trace }
@@ -272,7 +286,10 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
       ...route,
       trace: session.trace,
       confidence: requirementDropped ? 'weak' : route.confidence,
-      intentEcho: { applied: route.intentEcho.applied, ignored },
+      intentEcho: {
+      applied: [...route.intentEcho.applied, ...preferences.applied],
+      ignored,
+    },
     },
     roundsUsed: budget.roundsUsed,
     ignored,

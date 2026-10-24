@@ -1,9 +1,16 @@
 import { assessSignal } from '../route/assess'
+import {
+  OCCASION_QUERIES,
+  PARTY_QUERIES,
+  VIBE_QUERIES,
+} from '../intent/vocabulary'
 import { buildRoute } from '../route/build'
 import type {
   Candidate,
   EntityRef,
   HardConstraints,
+  Intent,
+  IntentEcho,
   Locality,
   ProviderExplainability,
   Route,
@@ -324,4 +331,55 @@ export function createSession(opts: {
   }
 
   return session
+}
+
+/**
+ * Turns the preference half of the intent into real Qloo tag ids by QUERYING
+ * the tag endpoint. The vocabulary stays Qloo's: remove Qloo and these words
+ * resolve to nothing, which is the point. Nothing here is a filter — a vibe
+ * or an occasion is a leaning, and the agent is free to widen past it.
+ */
+export async function resolvePreferenceTags(
+  provider: TasteProvider,
+  intent: Intent,
+): Promise<{ tagIds: string[]; applied: IntentEcho['applied'] }> {
+  const tagIds: string[] = []
+  const applied: IntentEcho['applied'] = []
+
+  const resolve = async (queries: string[]): Promise<string[]> => {
+    const found: string[] = []
+    for (const q of queries) {
+      const tags = await provider.findTags(q)
+      // Qloo returns the closest matches first; two is enough signal.
+      found.push(...tags.slice(0, 2).map((t) => t.id))
+    }
+    return found
+  }
+
+  const add = (label: string, detail: string, ids: string[]) => {
+    const fresh = ids.filter((id) => !tagIds.includes(id))
+    if (fresh.length === 0) return
+    tagIds.push(...fresh)
+    applied.push({ label, detail })
+  }
+
+  if (intent.vibe?.length) {
+    add('Vibe', intent.vibe.join(', '), await resolve(intent.vibe.flatMap((v) => VIBE_QUERIES[v])))
+  }
+  if (intent.occasion) {
+    add(
+      'Occasion',
+      intent.occasion.replace(/_/g, ' '),
+      await resolve(OCCASION_QUERIES[intent.occasion]),
+    )
+  }
+  if (intent.party?.composition) {
+    add(
+      'Going with',
+      `${intent.party.size} ${intent.party.composition.replace(/_/g, ' ')}`,
+      await resolve(PARTY_QUERIES[intent.party.composition]),
+    )
+  }
+
+  return { tagIds, applied }
 }

@@ -25,6 +25,26 @@ export const FIXTURE_TAGS: Tag[] = [
   T('urn:tag:genre:place:gallery', 'Art Gallery', 'urn:tag:genre:place', 0.84),
   T('urn:tag:genre:place:bar:lounge', 'Lounge', 'urn:tag:genre:place', 0.92),
   T('urn:tag:offerings:place:dessert', 'Dessert', 'urn:tag:offerings:place', 0.88),
+  // Ambience, occasion and party families, mirroring the URNs observed on the
+  // live host so preference resolution can be exercised without a network
+  // call. Hand-written, like everything else here.
+  T('urn:tag:ambience:qloo:lively', 'Lively', 'urn:tag:ambience:qloo', 0.96),
+  T('urn:tag:ambience:qloo:quiet', 'Quiet', 'urn:tag:ambience:qloo', 0.94),
+  T('urn:tag:ambience:qloo:intimate', 'Intimate', 'urn:tag:ambience:qloo', 0.92),
+  T('urn:tag:ambience:qloo:romantic', 'Romantic', 'urn:tag:ambience:qloo', 0.91),
+  T('urn:tag:ambience:qloo:upscale', 'Upscale', 'urn:tag:ambience:qloo', 0.9),
+  T('urn:tag:ambience:qloo:casual', 'Casual', 'urn:tag:ambience:qloo', 0.93),
+  T('urn:tag:ambience:qloo:outdoor', 'Outdoor', 'urn:tag:ambience:qloo', 0.89),
+  T('urn:tag:event:place:date_night', 'Date Night', 'urn:tag:event:place', 0.9),
+  T('urn:tag:good_for:qloo:first_date', 'First Date', 'urn:tag:good_for:qloo', 0.87),
+  T('urn:tag:event:place:birthday', 'Birthday', 'urn:tag:event:place', 0.86),
+  T('urn:tag:event:place:anniversary', 'Anniversary', 'urn:tag:event:place', 0.84),
+  T('urn:tag:good_for:qloo:celebrations', 'Celebrations', 'urn:tag:good_for:qloo', 0.85),
+  T('urn:tag:good_for:qloo:groups', 'Groups', 'urn:tag:good_for:qloo', 0.9),
+  T('urn:tag:good_for:qloo:solo_dining', 'Solo Dining', 'urn:tag:good_for:qloo', 0.8),
+  T('urn:tag:customer_identity:qloo:couples', 'Couples', 'urn:tag:customer_identity:qloo', 0.9),
+  T('urn:tag:theme:qloo:family', 'Family', 'urn:tag:theme:qloo', 0.83),
+  T('urn:tag:good_for:qloo:business', 'Business', 'urn:tag:good_for:qloo', 0.82),
 ]
 
 const tag = (id: string): Tag => {
@@ -56,7 +76,7 @@ const SEEDS: Seed[] = [
     address: '9 Kofo Abayomi St, Victoria Island',
     affinity: 0.81,
     popularity: 0.72,
-    tagIds: ['urn:tag:genre:place:cafe'],
+    tagIds: ['urn:tag:genre:place:cafe', 'urn:tag:ambience:qloo:quiet', 'urn:tag:ambience:qloo:casual'],
     descriptors: { goodFor: 'working, quiet mornings', ambience: 'calm, bright', cost: 'moderate', rating: 4.4 },
   },
   {
@@ -92,7 +112,13 @@ const SEEDS: Seed[] = [
     address: '12A Akin Olugbade St, Victoria Island',
     affinity: 0.88,
     popularity: 0.83,
-    tagIds: ['urn:tag:genre:place:restaurant', 'urn:tag:genre:place:restaurant:nigerian'],
+    tagIds: [
+      'urn:tag:genre:place:restaurant',
+      'urn:tag:genre:place:restaurant:nigerian',
+      'urn:tag:ambience:qloo:intimate',
+      'urn:tag:event:place:date_night',
+      'urn:tag:customer_identity:qloo:couples',
+    ],
     descriptors: { goodFor: 'dinner with friends', ambience: 'chic, outdoor seating', cuisine: 'West African', cost: 'expensive', rating: 4.5 },
   },
   {
@@ -104,7 +130,11 @@ const SEEDS: Seed[] = [
     address: '2 Idowu Martins St, Victoria Island',
     affinity: 0.76,
     popularity: 0.7,
-    tagIds: ['urn:tag:genre:place:restaurant'],
+    tagIds: [
+      'urn:tag:genre:place:restaurant',
+      'urn:tag:ambience:qloo:lively',
+      'urn:tag:good_for:qloo:groups',
+    ],
     descriptors: { goodFor: 'a long table', ambience: 'loud, lively', cuisine: 'small plates', cost: 'moderate', rating: 4.1 },
   },
   {
@@ -131,6 +161,8 @@ const SEEDS: Seed[] = [
     tagIds: [
       'urn:tag:genre:place:restaurant:cocktail_bar',
       'urn:tag:offerings:place:cocktails',
+      'urn:tag:ambience:qloo:intimate',
+      'urn:tag:good_for:qloo:first_date',
     ],
     descriptors: { goodFor: 'a late drink', ambience: 'dark, low-lit', cost: 'expensive', rating: 4.4 },
   },
@@ -143,7 +175,11 @@ const SEEDS: Seed[] = [
     address: '5 Saka Tinubu St, Victoria Island',
     affinity: 0.72,
     popularity: 0.66,
-    tagIds: ['urn:tag:genre:place:bar:lounge', 'urn:tag:offerings:place:live_music'],
+    tagIds: [
+      'urn:tag:genre:place:bar:lounge',
+      'urn:tag:offerings:place:live_music',
+      'urn:tag:ambience:qloo:lively',
+    ],
     descriptors: { goodFor: 'live sets', ambience: 'warm, busy', liveMusic: 'Thursday to Sunday', cost: 'moderate', rating: 4.3 },
   },
   {
