@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Intent, Route } from '@/lib/providers/types'
 import { TimeWindowPicker } from './TimeWindowPicker'
 import { TunePanel } from './TunePanel'
 import { ClarifyPrompt } from './ClarifyPrompt'
+import { loadPreferences, savePreferences } from '@/lib/intent/preferences'
 
 // Suggestions, not limits. Abuja leads because measured against the live Qloo
 // catalogue it returns the strongest coverage and the most walkable routes of
@@ -23,6 +24,12 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
   const [startHour, setStartHour] = useState(18)
   const [endHour, setEndHour] = useState(23)
   const [intent, setIntent] = useState<Intent>({})
+
+  // Whatever was tuned last time, on this device only.
+  useEffect(() => {
+    const stored = loadPreferences()
+    if (Object.keys(stored).length > 0) setIntent(stored)
+  }, [])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState<{
@@ -48,6 +55,7 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
         setError(data.error ?? 'Something went wrong planning that route.')
         return
       }
+      savePreferences(intent)
       onRoute(data.route as Route)
     } catch {
       setError('Could not reach the planner. Try again.')

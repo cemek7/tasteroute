@@ -9,6 +9,7 @@ import {
   VIBE_IDS,
   AGE_BANDS,
 } from '@/lib/intent/vocabulary'
+import { forgetPreferences } from '@/lib/intent/preferences'
 import type { DietaryId, Intent } from '@/lib/providers/types'
 
 /**
@@ -272,6 +273,18 @@ export function TunePanel({
               <option value={10000}>10 km</option>
             </select>
           </label>
+          <button
+            type="button"
+            onClick={() => {
+              forgetPreferences()
+              onChange({})
+            }}
+            className="text-xs underline"
+            style={{ color: 'var(--muted)' }}
+          >
+            forget my preferences
+          </button>
+
           <details>
             <summary className="cursor-pointer text-xs" style={{ color: 'var(--muted)' }}>
               About you (optional)
