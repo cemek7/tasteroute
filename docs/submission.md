@@ -96,5 +96,5 @@ qloo, nextjs, typescript, react, tailwindcss, zod, vitest, openai, vercel
 
 ## Try it out
 
-- Live demo: <URL>
+- Live demo: https://tasteroute-sepia.vercel.app
 - Repo: <URL>

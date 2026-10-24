@@ -1,25 +1,28 @@
 # TasteRoute status
 
-Last updated: 23 October 2026.
+Last updated: 24 October 2026.
 
 ## Where it stands
 
 The whole product is built and tested: engine, Qloo adapter, agent loop, API,
-mobile UI, save and share. 156 unit tests pass, 5 live Qloo tests pass with a
-key, typecheck is clean, `next build` succeeds, and 6 browser checks pass at
-phone width.
+mobile UI, save and share. 193 unit tests pass, 5 live Qloo tests pass with a
+key, typecheck is clean, `next build` succeeds, and 8 browser checks pass at
+phone width. A fresh whole-branch review found two criticals; both are fixed
+with tests that failed first.
 
 It has been run end to end against live Qloo and a live model many times and
 returns real routes with real evidence.
 
+## Hosted demo
+
+https://tasteroute-sepia.vercel.app — deployed 24 Oct, verified returning live Qloo routes with strong
+confidence. Public, no Vercel authentication wall.
+
 ## Blocking the submission
 
-1. **Not deployed.** `vercel whoami` reports logged out, and `vercel login` is
-   interactive. Christopher must run it once. The hosted demo is pass/fail for
-   the hackathon.
-2. **Repo is local only.** It must be public, with the licence visible in the
+1. **Repo is local only.** It must be public, with the licence visible in the
    GitHub About section.
-3. **OpenRouter credit was $4.79** when measured on 23 Oct, and each route
+2. **OpenRouter credit was $4.79** when measured on 23 Oct, and each route
    costs roughly $0.006. Worth topping up before judging.
 
 ## Commands
@@ -65,8 +68,9 @@ invalid parameters are silently ignored rather than rejected.
 
 ## Remaining submission steps
 
-- [ ] `vercel login`, then deploy, then set the five environment variables
-- [ ] Put the live URL into README.md and the Devpost form
+- [x] Deployed, with the five environment variables set on Vercel
+- [x] Live URL recorded in README.md and docs/submission.md
+- [ ] Paste the live URL into the Devpost form
 - [ ] Push to a public repo, licence visible in About
 - [ ] Paste `docs/submission.md` into the Devpost description
 - [ ] Top up OpenRouter credit

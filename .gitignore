@@ -20,3 +20,6 @@ qloo-cache/
 
 # sdd scratch workspace
 .superpowers/
+.vercel
+.env*
+!.env.example

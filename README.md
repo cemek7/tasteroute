@@ -7,7 +7,7 @@ decides which questions to ask [Qloo's Taste AI](https://qloo.com); TasteRoute
 decides what the answer is. Scoring, stop order and reason text are all
 computed from Qloo's own fields, never generated.
 
-**Live demo:** _not yet deployed — see [Deploying](#deploying)._
+**Live demo:** https://tasteroute-sepia.vercel.app
 
 ## What makes it Qloo-powered
 
