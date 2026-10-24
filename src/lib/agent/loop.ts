@@ -123,10 +123,13 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
         names: request.intent.seedPlaces,
       })) as { entities?: { entityId: string; name: string }[] }
       seededEntityIds = (found.entities ?? []).map((e) => e.entityId)
-      const foundNames = new Set((found.entities ?? []).map((e) => e.name.toLowerCase()))
-      const missed = request.intent.seedPlaces.filter(
-        (n) => !foundNames.has(n.toLowerCase()),
-      )
+      // Qloo answers "BluCabana" with "BluCabana Restaurant & Cafe", so an
+      // exact comparison reported a found place as missing.
+      const foundNames = (found.entities ?? []).map((e) => e.name.toLowerCase())
+      const missed = request.intent.seedPlaces.filter((n) => {
+        const want = n.toLowerCase().trim()
+        return !foundNames.some((f) => f.includes(want) || want.includes(f))
+      })
       if (missed.length > 0) {
         ignored.push({
           label: 'Places you like',
@@ -137,6 +140,13 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
       if (e instanceof UnknownLocalityError) {
         return { error: e.message, trace: session.trace }
       }
+      // Reported, not swallowed. This threw for weeks on a schema mismatch
+      // and the only symptom was that naming a place you liked did nothing.
+      console.error('seed lookup failed', (e as Error).message)
+      ignored.push({
+        label: 'Places you like',
+        reason: 'the lookup failed, so what you named did not shape the search',
+      })
     }
   }
 

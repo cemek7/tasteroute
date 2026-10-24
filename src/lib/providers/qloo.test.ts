@@ -545,3 +545,46 @@ describe('explainability keeps the widest tier Qloo reports', () => {
     expect(explainability?.signalEntities[0].topN).toBe('all')
   })
 })
+
+describe('seedEntities only needs an id and a name', () => {
+  it('reads a /search entity whose other fields differ from the insights shape', async () => {
+    // /search returns `types` (plural), differently shaped tags, and fields
+    // the insights schema does not describe. Validating the whole entity made
+    // seedEntities throw, and the throw was swallowed upstream — so naming a
+    // place you like silently did nothing.
+    const fetchImpl = async () =>
+      ok({
+        results: [
+          {
+            entity_id: 'abc-123',
+            name: 'BluCabana Restaurant & Cafe',
+            types: ['urn:entity:place'],
+            disambiguation: 'Abuja',
+            popularity: 0.42,
+            location: { lat: 9.07, lon: 7.46, geohash: 'xyz' },
+            tags: [{ tag_id: 'something', value: 'odd' }],
+            properties: { unexpected: { nested: true } },
+          },
+        ],
+      })
+    const found = await provider(fetchImpl as unknown as typeof fetch).seedEntities([
+      'BluCabana',
+    ])
+    expect(found).toEqual([{ entityId: 'abc-123', name: 'BluCabana Restaurant & Cafe' }])
+  })
+
+  it('returns nothing for a name Qloo does not know, without throwing', async () => {
+    const fetchImpl = async () => ok({ results: [] })
+    expect(
+      await provider(fetchImpl as unknown as typeof fetch).seedEntities(['Nowhere']),
+    ).toEqual([])
+  })
+
+  it('tolerates the object-wrapped results form too', async () => {
+    const fetchImpl = async () =>
+      ok({ results: { entities: [{ entity_id: 'z', name: 'Zed' }] } })
+    expect(
+      await provider(fetchImpl as unknown as typeof fetch).seedEntities(['Zed']),
+    ).toEqual([{ entityId: 'z', name: 'Zed' }])
+  })
+})

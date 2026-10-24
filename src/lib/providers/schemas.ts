@@ -120,20 +120,21 @@ export const qlooTagsSchema = z.object({
     .loose(),
 })
 
+/**
+ * `/search` returns a different entity shape from `/v2/insights` — `types`
+ * rather than `type`, differently shaped tags, and fields neither schema
+ * describes. Only two of them are needed, so only two are required: anything
+ * stricter made seedEntities throw on a perfectly good response.
+ */
+const searchHit = z.object({ entity_id: z.string(), name: z.string() }).loose()
+
 export const qlooSearchSchema = z.object({
   results: z
     .union([
-      z.array(qlooEntity),
-      z
-        .object({
-          entities: z
-            .array(qlooEntity)
-            .nullish()
-            .transform((e) => e ?? []),
-        })
-        .loose(),
+      z.array(searchHit),
+      z.object({ entities: z.array(searchHit).nullish() }).loose(),
     ])
-    .optional(),
+    .nullish(),
 })
 
 export type QlooInsightsResponse = z.infer<typeof qlooInsightsSchema>

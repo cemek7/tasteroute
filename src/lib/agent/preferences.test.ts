@@ -224,3 +224,41 @@ describe('places you already like reach Qloo as entity signals', () => {
     expect(result.ignored.some((i) => i.reason.includes('Somewhere Imaginary'))).toBe(true)
   })
 })
+
+describe('a seed matched loosely is not reported as missing', () => {
+  it('treats Qloo returning a fuller name as a match', async () => {
+    const { planRoute } = await import('./loop')
+    const fuller = {
+      kind: 'qloo' as const,
+      async findTags() {
+        return []
+      },
+      async seedEntities(names: string[]) {
+        // Qloo answers "BluCabana" with "BluCabana Restaurant & Cafe".
+        return names.map((n) => ({ entityId: `e-${n}`, name: `${n} Restaurant & Cafe` }))
+      },
+      async suggestPlaces() {
+        const { FIXTURE_CANDIDATES } = await import('../providers/fixture')
+        return { candidates: FIXTURE_CANDIDATES, explainability: null, warnings: [] }
+      },
+    }
+    const result = await planRoute({
+      provider: fuller,
+      request: {
+        city: 'Abuja',
+        mood: 'dinner',
+        timeWindow: { startHour: 19, endHour: 23 },
+        intent: { seedPlaces: ['BluCabana'] },
+      },
+      locality: { name: 'Abuja' },
+      client: {
+        async complete() {
+          return { toolCalls: [] }
+        },
+      },
+      maxRounds: 3,
+    })
+    if ('error' in result) throw new Error(result.error)
+    expect(result.ignored.map((i) => i.label)).not.toContain('Places you like')
+  })
+})
