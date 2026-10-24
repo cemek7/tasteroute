@@ -48,6 +48,14 @@ const qlooEntity = z.object({
       // Qloo sends live_music as a boolean, not a description.
       live_music: z.boolean().nullish(),
       primary_genre: z.object({ id: z.string() }).loose().nullish(),
+      image: z.object({ url: z.string() }).loose().nullish(),
+      images: z.array(z.object({ url: z.string() }).loose()).nullish(),
+      neighborhood: z.string().nullish(),
+      neighborhood_description: z.string().nullish(),
+      overall_description: z.string().nullish(),
+      unique_selling_points: z.string().nullish(),
+      phone: z.string().nullish(),
+      website: z.string().nullish(),
     })
     .loose()
     .nullish()

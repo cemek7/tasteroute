@@ -175,7 +175,31 @@ function toCandidate(e: QlooEntity, index: number): Candidate {
     },
     providerRank: index + 1,
     providerRef: { provider: 'qloo', entityId: e.entity_id },
+    media: {
+      imageUrl: (p.image as { url?: string } | null | undefined)?.url ?? undefined,
+      imageUrls: Array.isArray(p.images)
+        ? (p.images as { url?: string }[])
+            .map((i) => i.url)
+            .filter((u): u is string => typeof u === 'string')
+        : undefined,
+    },
+    detail: {
+      neighborhood: p.neighborhood ?? undefined,
+      neighborhoodNote: firstSentence(p.neighborhood_description),
+      about: firstSentence(p.overall_description),
+      standout: firstSentence(p.unique_selling_points),
+      rating: p.business_rating ?? undefined,
+      phone: p.phone ?? undefined,
+      website: p.website ?? undefined,
+    },
   }
+}
+
+/** Qloo's prose fields are paragraphs; a card shows the first sentence. */
+function firstSentence(raw: unknown): string | undefined {
+  if (typeof raw !== 'string' || raw.trim().length === 0) return undefined
+  const s = raw.trim().split(/(?<=\.)\s/)[0] ?? raw
+  return s.replace(/\.$/, '').trim() || undefined
 }
 
 /** Qloo's good_for is a tag array; render the names as one readable phrase. */

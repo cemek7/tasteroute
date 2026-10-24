@@ -17,11 +17,30 @@ const EVIDENCE_LABEL: Record<Stop['evidence'][number]['kind'], string> = {
 export function StopCard({ stop }: { stop: Stop }) {
   const walk = stop.walkFromPrev
 
+  const detail = stop.candidate.detail
+
   return (
     <li
-      className="rounded-lg border p-4"
+      className="overflow-hidden rounded-lg border"
       style={{ borderColor: 'var(--border)', background: 'var(--card)' }}
     >
+      {stop.candidate.media?.imageUrl && (
+        // Fixed height and explicit dimensions: a third-party image that is
+        // slow or missing must not shift the layout.
+        <img
+          src={stop.candidate.media.imageUrl}
+          alt=""
+          width={420}
+          height={144}
+          loading="lazy"
+          onError={(e) => {
+            e.currentTarget.style.visibility = 'hidden'
+          }}
+          className="h-36 w-full object-cover"
+          style={{ background: 'var(--border)' }}
+        />
+      )}
+      <div className="p-4">
       {walk && (
         <p className="mb-3 text-xs" style={{ color: 'var(--muted)' }}>
           {walk.minutes} min walk · {walk.metres.toLocaleString()} m
@@ -45,7 +64,24 @@ export function StopCard({ stop }: { stop: Stop }) {
         </p>
       )}
 
+      {(detail?.neighborhood || detail?.rating != null || detail?.openTonight != null) && (
+        <p className="mt-1.5 flex flex-wrap gap-x-2 text-xs" style={{ color: 'var(--muted)' }}>
+          {detail?.neighborhood && <span>{detail.neighborhood}</span>}
+          {detail?.rating != null && <span>{detail.rating.toFixed(1)} rated</span>}
+          {detail?.openTonight === true && <span>open during your window</span>}
+          {detail?.openTonight === false && (
+            <span style={{ color: '#fca5a5' }}>may be shut then</span>
+          )}
+        </p>
+      )}
+
       <p className="mt-3 text-sm leading-relaxed">{stop.why}</p>
+
+      {detail?.about && (
+        <p className="mt-2 text-xs italic" style={{ color: 'var(--muted)' }}>
+          Qloo: &ldquo;{detail.about}&rdquo;
+        </p>
+      )}
 
       {stop.evidence.length === 0 ? (
         <p className="mt-2 text-xs italic" style={{ color: 'var(--muted)' }}>
@@ -64,6 +100,7 @@ export function StopCard({ stop }: { stop: Stop }) {
           ))}
         </ul>
       )}
+      </div>
     </li>
   )
 }

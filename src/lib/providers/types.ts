@@ -126,6 +126,19 @@ export type Candidate = {
   }
   providerRank: number
   providerRef: { provider: 'qloo' | 'fixture'; entityId: string }
+  /** Photos Qloo hosts. Absent is absent: no placeholders. */
+  media?: { imageUrl?: string; imageUrls?: string[] }
+  /** Everything else a card shows, already in the response we pay for. */
+  detail?: {
+    neighborhood?: string
+    neighborhoodNote?: string
+    about?: string
+    standout?: string
+    rating?: number
+    phone?: string
+    website?: string
+    openTonight?: boolean | null
+  }
 }
 
 export type ProviderExplainability = {

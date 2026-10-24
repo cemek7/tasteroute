@@ -48,6 +48,21 @@ const candidateShape = z.object({
     })
     .default({}),
   providerRank: z.number().default(1),
+  media: z
+    .object({ imageUrl: z.string().optional(), imageUrls: z.array(z.string()).optional() })
+    .optional(),
+  detail: z
+    .object({
+      neighborhood: z.string().optional(),
+      neighborhoodNote: z.string().optional(),
+      about: z.string().optional(),
+      standout: z.string().optional(),
+      rating: z.number().optional(),
+      phone: z.string().optional(),
+      website: z.string().optional(),
+      openTonight: z.boolean().nullable().optional(),
+    })
+    .optional(),
   providerRef: z.object({
     provider: z.enum(['qloo', 'fixture']),
     entityId: z.string(),

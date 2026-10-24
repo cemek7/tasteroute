@@ -10,6 +10,7 @@ import type {
   TraceEntry,
 } from '../providers/types'
 import { assessSignal } from './assess'
+import { isOpenDuring } from './open-tonight'
 import { orderStops } from './order'
 import { scoreCandidate, type ScoreContext } from './score'
 import { slotsFor } from './slots'
@@ -189,10 +190,19 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
 
   const stops = ordered.map((o, i) => {
     const { why, evidence } = buildWhy(o.candidate, whyCtx)
+    // Derived from the same parser the score uses, so the card cannot
+    // disagree with the ranking.
+    const candidate: Candidate = {
+      ...o.candidate,
+      detail: {
+        ...o.candidate.detail,
+        openTonight: isOpenDuring(o.candidate.hours, input.request.timeWindow),
+      },
+    }
     return {
       order: (i + 1) as 1 | 2 | 3,
       slot: o.slot,
-      candidate: o.candidate,
+      candidate,
       why,
       evidence,
       ...(o.walkFromPrev ? { walkFromPrev: o.walkFromPrev } : {}),

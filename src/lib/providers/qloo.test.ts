@@ -337,3 +337,72 @@ describe('hard constraints reach Qloo as parameters', () => {
     expect(urls[0]).not.toContain('filter.location.query')
   })
 })
+
+describe('the richer fields Qloo already returns', () => {
+  it('maps the image, rating, neighbourhood and descriptions onto the candidate', async () => {
+    const fetchImpl = async () =>
+      ok({
+        success: true,
+        results: {
+          entities: [
+            {
+              entity_id: 'a',
+              name: 'Bluecabana',
+              tags: [],
+              properties: {
+                image: { url: 'https://images.qloo.com/i/abc-420x-auto.jpg' },
+                images: [{ url: 'https://images.qloo.com/i/abc-1.jpg' }],
+                business_rating: 4.3,
+                neighborhood: 'Wuse 2',
+                neighborhood_description: 'A busy strip. Lots of bars.',
+                overall_description: 'Bluecabana is a courtyard bar. It gets loud after ten.',
+                unique_selling_points: 'The courtyard. Also the grilled fish.',
+                phone: '+234 000 0000',
+              },
+            },
+          ],
+        },
+      })
+    const { candidates } = await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({
+      locality: 'Abuja',
+    })
+    const c = candidates[0]
+    expect(c.media?.imageUrl).toContain('images.qloo.com')
+    expect(c.media?.imageUrls).toHaveLength(1)
+    expect(c.detail?.rating).toBe(4.3)
+    expect(c.detail?.neighborhood).toBe('Wuse 2')
+    expect(c.detail?.neighborhoodNote).toBe('A busy strip')
+    expect(c.detail?.about).toBe('Bluecabana is a courtyard bar')
+    expect(c.detail?.standout).toBe('The courtyard')
+    expect(c.detail?.phone).toBe('+234 000 0000')
+  })
+
+  it('leaves media and detail fields undefined when Qloo sends nulls', async () => {
+    const fetchImpl = async () =>
+      ok({
+        success: true,
+        results: {
+          entities: [
+            {
+              entity_id: 'b',
+              name: 'Bare',
+              tags: [],
+              properties: {
+                image: null,
+                images: null,
+                business_rating: null,
+                neighborhood: null,
+                overall_description: null,
+              },
+            },
+          ],
+        },
+      })
+    const { candidates } = await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({
+      locality: 'Abuja',
+    })
+    expect(candidates[0].media?.imageUrl).toBeUndefined()
+    expect(candidates[0].detail?.rating).toBeUndefined()
+    expect(candidates[0].detail?.about).toBeUndefined()
+  })
+})
