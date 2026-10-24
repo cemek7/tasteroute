@@ -47,7 +47,10 @@ name — appears in this product.**
 
 ## 2. Non-goals
 
-- Accounts, login, saved profiles. Intent lives in the request and the URL.
+- Accounts, login, server-side profiles. Intent lives in the request and the
+  URL. Section 10 does remember the tuning panel on the device, which is a
+  convenience in the browser, not a profile: nothing identifying is kept, it
+  never leaves the machine, and the person can clear it.
 - Events and ticketing. Qloo's place catalogue is the product.
 - More than three stops. Swapping covers "more options".
 - Inferring demographics. If we do not ask, we do not guess.
@@ -255,7 +258,188 @@ Three rules for this panel:
 
 The returned route renders as today, plus a **swap** control per stop.
 
-## 7. Swapping a stop
+## 7. Richer stop cards, from data already paid for
+
+Every Qloo place response already carries far more than the app shows. Counted
+across five Abuja results on 24 Oct:
+
+| Field | Present | Shape |
+|---|---|---|
+| `image.url` | 5/5 | `{ url }` on Qloo's CDN |
+| `images[]` | 5/5 | array of `{ url, type }` |
+| `business_rating` | 5/5 | float |
+| `neighborhood` | 4/5 | string, e.g. "Katampe" |
+| `neighborhood_description` | 4/5 | prose |
+| `phone` | 4/5 | string |
+| `overall_description` | 3/5 | prose |
+| `unique_selling_points` | 3/5 | prose |
+| `hours` | 3/5 | weekday map |
+| `price_level` | **1/5** | integer |
+| `website` | **0/5** | absent for Abuja |
+
+`Candidate` gains an optional `media` and `detail` block carrying these,
+normalised and null-safe at the provider boundary like everything else:
+
+```ts
+media?: { imageUrl?: string; imageUrls?: string[] }
+detail?: {
+  neighborhood?: string
+  neighborhoodNote?: string      // first sentence of neighborhood_description
+  about?: string                 // first sentence of overall_description
+  standout?: string              // first sentence of unique_selling_points
+  rating?: number
+  phone?: string
+  website?: string
+  openTonight?: { from: number; to: number } | null
+}
+```
+
+A stop card then shows a photo, the neighbourhood, the rating, whether it is
+open during the requested window, and one line about the place — on top of the
+existing reason and evidence chips.
+
+Three rules carried from the existing honesty design:
+
+1. **Absent is absent.** No placeholder images, no "4.0 (estimated)". A stop
+   with no photo renders without one; the layout does not depend on it.
+2. **Prose is quoted, not paraphrased.** `overall_description` is Qloo's
+   marketing copy. It is attributed and truncated to its first sentence, the
+   same treatment `ambience_description` already gets.
+3. **`openTonight` is derived, not asserted.** It comes from the same
+   `openRanges` parser the scoring uses, so the card cannot disagree with the
+   score.
+
+Images come from `images.qloo.com`, so Next's image config needs that host
+allow-listed. Plain `<img>` with explicit dimensions and `loading="lazy"` is
+sufficient and avoids an optimiser dependency.
+
+## 8. The agent asks one clarifying question
+
+"Something nice" is not a plan. Rather than guess or ask for everything up
+front, the agent may ask **exactly one** question before planning, and only
+when answering it would change which Qloo queries it runs.
+
+The loop gains a fifth tool:
+
+```ts
+ask_user({
+  question: string,          // one short sentence
+  options: string[],         // 2-4 concrete choices
+  because: string,           // why this changes the search
+}) -> { answered: string } | { skipped: true }
+```
+
+Rules, all enforced in our code rather than asked of the prompt:
+
+- **At most one question per route.** A second call returns
+  `{ skipped: true }` with a note. The budget already caps rounds; this caps
+  interruptions.
+- **It may only be the first tool call.** Once the agent has searched, it has
+  what it needs; asking then is stalling.
+- **It must offer options.** A free-text follow-up is a second form.
+- **Skipping is always available and always safe.** The UI shows "just plan
+  it" next to the choices, and the agent proceeds on defaults.
+- **The question and the answer both appear in the trace**, so the route stays
+  auditable.
+
+This is the most genuinely agentic behaviour available to the product: the
+model decides *whether the intent is sufficient*, which is judgment, and the
+question it asks is visible evidence of that judgment to anyone watching.
+
+It also changes the request shape: planning becomes two-phase when a question
+is asked. The endpoint returns `{ question, resumeToken }`, and the client
+posts back `{ ...originalRequest, answer, resumeToken }`. The token is the
+original request re-validated, not server state, so nothing is stored between
+calls and a stale token cannot resume into a different search.
+
+## 9. A narrative for the evening
+
+Per-stop reasons explain each choice. They do not explain the *shape* of the
+night: that it starts quiet and ends loud, that the walk between two and three
+is the long one, that the last stop is the only one open past midnight.
+
+`Route` gains:
+
+```ts
+narrative: { line: string; evidence: Evidence[] }
+```
+
+Composed by a pure function from facts already computed — slot order, the
+vibe tags each stop matched, total walking time, the time window, and
+confidence. Not generated by the model, for the same reason the reasons are
+not: a sentence the data does not support is worse than no sentence.
+
+Worked example of the intended output:
+
+> Starts quiet at a cafe in Wuse, builds through dinner, and finishes at the
+> only one of the three still open at 1am. Twenty minutes of walking in total.
+
+When the facts are thin, the line is short rather than padded: "Three stops in
+Wuse, eleven minutes of walking." A test asserts the narrative cites only
+facts present in the route, and that it never claims a vibe no stop matched.
+
+## 10. Remembering preferences on this device
+
+Accounts remain a non-goal. The tuning panel's settings persist in
+`localStorage` under one key, separate from saved routes:
+
+```ts
+type StoredPreferences = {
+  version: 1
+  vibe?: VibeId[]
+  occasion?: OccasionId
+  party?: { size: number; composition?: PartyComposition }
+  persona?: Persona
+  discovery?: number
+  budget?: 1 | 2 | 3 | 4
+  requirements?: { dietary?: DietaryId[]; accessibility?: AccessibilityId[] }
+  avoid?: string[]
+}
+```
+
+What is deliberately **not** stored: `demographics`, `city`, `mood`,
+`timeWindow` and `seedPlaces`. Age and gender are not kept even on the device,
+per section 14. The rest change every time you go out.
+
+Behaviour:
+
+- Loaded on mount, with every field validated the same way a share link is —
+  a hand-edited or stale entry is discarded, not trusted.
+- `version` gates the shape; an unknown version is dropped silently.
+- A visible "forget my preferences" control. Storage the user cannot clear
+  from inside the product is a trap.
+- Storage access is wrapped: private browsing throws, and the page must render
+  anyway. The existing `saveRoute` already sets this pattern.
+
+## 11. Two findings that constrain the design
+
+**`price_level` is sparse.** Only 1 of 5 Abuja places carried it. Used as a
+hard `filter.price_level.max`, budget would discard most of the city for a
+field most venues lack. So budget is applied as a hard filter **only when the
+pool stays viable**: if it empties a slot, it is relaxed to a scoring
+preference and reported in `intentEcho.ignored` as "budget could not be
+applied strictly — few places here publish a price level". A stated ceiling
+still never produces a stop known to exceed it; what it cannot do is exclude
+places with no price data at all.
+
+**Discovery surfaces non-venues.** At `filter.popularity.max=0.5` the top
+Abuja result was *Grandview Estates*, `primary_genre:
+urn:tag:genre:place:housing_complex`. The famous end of the catalogue is malls
+and hotels; the obscure end is housing estates, car parks and offices. The
+existing lodging deny-list does not catch these.
+
+So slot assignment moves from a deny-list to an **allow-list of venue kinds**,
+read from `properties.primary_genre.id` — which is a single clean URN per place
+and a better source than the deepest-tag heuristic currently in use. A place
+whose primary genre is not a recognised going-out kind gets no slot, whatever
+its affinity. This replaces guesswork with Qloo's own classification.
+
+**This supersedes the category decision in the 23 Oct spec**, which read the
+deepest genre tag because `primary_genre` had not been noticed. The deepest-tag
+path stays as the fallback for a place that carries no `primary_genre`, so the
+behaviour only improves where the better field exists.
+
+## 12. Swapping a stop
 
 `alternativesBySlot` carries the scored runners-up the engine already computed
 and discarded. Swapping picks the next candidate for that slot, recomputes
@@ -266,7 +450,7 @@ Constraints that must survive a swap: no duplicate place, no duplicate
 category, `close` stays last. The alternatives list is filtered for those
 before it leaves the server, so the client cannot construct an invalid route.
 
-## 8. Backward compatibility
+## 13. Backward compatibility
 
 Every new field is optional. A body carrying only `city`, `mood`, `startHour`
 and `endHour` behaves exactly as it does today.
@@ -276,7 +460,7 @@ only just hardened. `alternativesBySlot` and `intentEcho` are therefore
 **optional in the share schema** with empty defaults, so links created before
 this change still decode. A test pins that.
 
-## 9. Handling what people tell us about themselves
+## 14. Handling what people tell us about themselves
 
 Age and gender are optional inputs to a recommendation, not a profile.
 
@@ -291,7 +475,7 @@ Age and gender are optional inputs to a recommendation, not a profile.
   as the default third option and does not pretend the API is richer than it is.
 - The UI states why it is asked, in one line, next to the field.
 
-## 10. Testing
+## 15. Testing
 
 Same shape as the existing suite: pure functions, no network.
 
@@ -314,7 +498,34 @@ Same shape as the existing suite: pure functions, no network.
 - **Live, skipped without a key**: one request carrying every dimension returns
   a route, and one carrying an impossible requirement reports it as ignored.
 
-## 11. Open items
+Added by sections 7 to 11:
+
+- **Absent media is absent**: a candidate with no `image` renders a card with
+  no image element, and the card's layout does not shift.
+- **Prose is attributed and cut**: a 400-character `overall_description`
+  becomes one quoted sentence under 90 characters.
+- **`openTonight` agrees with scoring**: for any candidate and window, the card
+  claims open if and only if `outsideWindow` returns false.
+- **One question only**: a second `ask_user` call in the same route returns
+  `{ skipped: true }`, and the plan still completes.
+- **A question cannot come after a search**: `ask_user` after
+  `suggest_places` is refused.
+- **Skipping is safe**: a run where the question is skipped produces a route.
+- **The resume token is not state**: a token from one request cannot resume a
+  different city or mood; the second call is validated from scratch.
+- **The narrative cites only facts**: a route whose stops matched no vibe tag
+  produces a narrative mentioning no vibe, and the walking total in the line
+  equals the sum of the legs.
+- **Stored preferences are validated**: a hand-edited or wrong-version entry in
+  `localStorage` is discarded rather than loaded.
+- **Demographics are never persisted**: after a request carrying age and
+  gender, `localStorage` contains neither.
+- **Venue-kind allow-list**: a place whose `primary_genre` is
+  `housing_complex`, `car_park` or `office` gets no slot at affinity 0.99.
+- **Budget relaxes rather than empties**: when every candidate lacks
+  `price_level`, the route still builds and `intentEcho.ignored` names budget.
+
+## 16. Open items
 
 1. **Radius needs a city centre before searching.** Resolved by one untagged
    query per request, taking the top result's `geocode` as the centre. One
@@ -327,11 +538,33 @@ Same shape as the existing suite: pure functions, no network.
 3. **`filter.tags` strictness.** It returned zero results in one probe. The
    dropped-requirement path exists because of that, but the exact behaviour
    with multiple required tags is untested.
-4. **Deadline.** 30 October, 11:45pm EDT. This is six days of work compressed
-   into a few; if it has to be cut, the order to keep is: discovery slider,
-   requirements, occasion and party, swap, demographics.
+4. **Does Qloo's image CDN allow hotlinking?** The URLs are public and the
+   demo is public, so this should hold, but it is unverified. Task 1 fetches
+   one image and checks the status. If it 403s, the cards drop photos and keep
+   everything else.
+5. **The clarifying question is the riskiest addition.** It makes planning
+   two-phase and touches the loop, the endpoint and the client. It is also the
+   strongest judging material. It goes last of the features and first of the
+   cuts if the deadline tightens.
+6. **Deadline.** 30 October, 11:45pm EDT. This is well over six days of
+   comfortable work, so the cut order matters. Keep, in this order:
 
-## 12. What would make this the wrong build
+   1. **Discovery slider + venue-kind allow-list** — fixes output quality, and
+      the allow-list is needed the moment discovery ships.
+   2. **Requirements, budget, area** — the hard filters, and `intentEcho`
+      with them, because a silently dropped requirement is the one defect this
+      product must not have.
+   3. **Richer stop cards** — largest visible gain per hour of work; the data
+      is already in hand.
+   4. **Occasion, vibe, party, persona** — the preference signals.
+   5. **Narrative** — pure function over facts already computed.
+   6. **Swap a stop** — no new Qloo or model spend.
+   7. **Stored preferences** — convenience only.
+   8. **The clarifying question** — highest risk, highest judging value.
+   9. **Demographics** — may be deleted outright after item 2 of these open
+      items is answered.
+
+## 17. What would make this the wrong build
 
 - If `signal.demographics` turns out not to change results, asking people their
   age and gender is an intrusion that buys nothing. Remove the field.
@@ -341,3 +574,10 @@ Same shape as the existing suite: pure functions, no network.
 - If the "Tune this" panel measurably slows a first-time user to their first
   route, the default-collapsed design has failed and the panel should move to a
   second screen reached from the result.
+- If the clarifying question fires on inputs that were already clear, it is an
+  obstacle rather than intelligence. One question that earns its place is the
+  bar; a question on every request means the gate is wrong and it should be
+  restricted to inputs under a length or specificity threshold.
+- If the narrative reads as filler on real routes rather than telling the
+  reader something they did not already see in the three cards, it is
+  decoration and should be cut.
