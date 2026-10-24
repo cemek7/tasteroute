@@ -3,6 +3,7 @@ import { buildRoute } from '../route/build'
 import type {
   Candidate,
   EntityRef,
+  HardConstraints,
   Locality,
   ProviderExplainability,
   Route,
@@ -112,8 +113,11 @@ export function createSession(opts: {
   provider: TasteProvider
   request: RouteRequest
   locality: Locality
+  /** Applied to every search. The agent has no way to reach or relax these. */
+  constraints?: HardConstraints
 }): AgentSession {
   const { provider, request, locality } = opts
+  const constraints = opts.constraints ?? {}
 
   const pool: Candidate[] = []
   const trace: TraceEntry[] = []
@@ -169,6 +173,7 @@ export function createSession(opts: {
         tags: tagIds.map((id) => ({ id })),
         entities: entityIds,
         take: typeof args.take === 'number' ? args.take : 30,
+        constraints,
       })
       if (res.explainability) {
         // Scope the block to the candidates of THIS response before storing
@@ -272,6 +277,7 @@ export function createSession(opts: {
             locality: locality.name,
             tags: tags.slice(0, 3).map((t) => ({ id: t.id })),
             take: 30,
+            constraints,
           })
           addToPool(res.candidates)
           if (assessSignal(pool).perSlot[slot] > 0) {

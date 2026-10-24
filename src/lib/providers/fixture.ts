@@ -215,11 +215,21 @@ export class FixtureProvider implements TasteProvider {
 
   async suggestPlaces(q: PlaceQuery): Promise<PlaceResult> {
     const wantedTagIds = (q.tags ?? []).map((t) => t.id)
-    const matched = wantedTagIds.length
+    let matched = wantedTagIds.length
       ? FIXTURE_CANDIDATES.filter((c) =>
           c.tags.some((t) => wantedTagIds.includes(t.id)),
         )
       : FIXTURE_CANDIDATES
+
+    // Honour the popularity band so the engine's own tests can exercise it
+    // without a network call.
+    const c = q.constraints ?? {}
+    if (c.popularityMax !== undefined) {
+      matched = matched.filter((x) => (x.popularity ?? 1) <= c.popularityMax!)
+    }
+    if (c.popularityMin !== undefined) {
+      matched = matched.filter((x) => (x.popularity ?? 0) >= c.popularityMin!)
+    }
 
     const candidates = matched
       .slice(0, q.take ?? 50)

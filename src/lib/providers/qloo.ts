@@ -100,9 +100,20 @@ export class QlooProvider implements TasteProvider {
 
   async suggestPlaces(q: PlaceQuery): Promise<PlaceResult> {
     const seeded = (q.entities ?? []).length > 0
+    const c = q.constraints ?? {}
     const params = buildInsightsParams({
       'filter.type': 'urn:entity:place',
-      'filter.location.query': q.locality,
+      // A radius needs a point, and a point replaces the locality name.
+      'filter.location.query': c.radius ? undefined : q.locality,
+      'filter.location': c.radius ? `POINT(${c.radius.lng} ${c.radius.lat})` : undefined,
+      'filter.location.radius': c.radius?.metres,
+      'filter.popularity.min': c.popularityMin,
+      'filter.popularity.max': c.popularityMax,
+      'filter.price_level.max': c.priceLevelMax,
+      'filter.tags': c.requiredTags?.length ? c.requiredTags.join(',') : undefined,
+      'filter.exclude.tags': c.excludeTags?.length ? c.excludeTags.join(',') : undefined,
+      'signal.demographics.age': c.demographics?.ageBand,
+      'signal.demographics.gender': c.demographics?.gender,
       'signal.interests.tags': q.tags?.length ? q.tags.map((t) => t.id).join(',') : undefined,
       'signal.interests.entities': seeded ? q.entities!.join(',') : undefined,
       // Qloo cannot compute explainability for tag signals, so only ask when seeded.

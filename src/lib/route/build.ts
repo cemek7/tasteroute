@@ -215,5 +215,6 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
     trace: input.trace,
     providerKind: input.providerKind,
     unfilledSlots: [],
+    intentEcho: { applied: [], ignored: [] },
   }
 }

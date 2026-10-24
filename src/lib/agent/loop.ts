@@ -3,6 +3,7 @@ import { trimForBudget } from './spend'
 import { createSession, type ToolDefinition } from './tools'
 import { UnknownLocalityError } from '../providers/qloo'
 import type {
+  HardConstraints,
   Locality,
   Route,
   RouteRequest,
@@ -60,6 +61,7 @@ export type PlanOptions = {
   client: ChatClient
   maxRounds?: number
   maxInputTokens?: number
+  constraints?: HardConstraints
 }
 
 export type PlanResult =
@@ -70,7 +72,7 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
   const { provider, request, locality, client } = opts
   const budget = new Budget(opts.maxRounds ?? DEFAULT_MAX_ROUNDS)
   const maxInputTokens = opts.maxInputTokens ?? DEFAULT_MAX_INPUT_TOKENS
-  const session = createSession({ provider, request, locality })
+  const session = createSession({ provider, request, locality, constraints: opts.constraints })
 
   const messages: ChatMessage[] = [
     {

@@ -7,6 +7,7 @@ import { buildRoute } from '@/lib/route/build'
 import { FixtureProvider } from '@/lib/providers/fixture'
 import { QlooProvider } from '@/lib/providers/qloo'
 import { parseRouteBody } from '@/lib/route/request-body'
+import { constraintsFromIntent } from '@/lib/intent/qloo-params'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -36,6 +37,8 @@ export async function POST(req: Request) {
 
   const request = parsed.value
   const locality = { name: request.city }
+  // The half of the intent our code enforces. The agent never sees these.
+  const { constraints, applied } = constraintsFromIntent(request.intent)
 
   // Without credentials, or past the daily ceiling, we still answer — from
   // clearly labelled sample data rather than with an error page.
@@ -67,12 +70,16 @@ export async function POST(req: Request) {
       request,
       locality,
       client: createOpenAIClient(),
+      constraints,
     })
 
     if ('error' in result) {
       return NextResponse.json({ error: result.error, trace: result.trace }, { status: 422 })
     }
-    return NextResponse.json({ route: result.route, roundsUsed: result.roundsUsed })
+    return NextResponse.json({
+      route: { ...result.route, intentEcho: { applied, ignored: [] } },
+      roundsUsed: result.roundsUsed,
+    })
   } catch (e) {
     // Never leak a stack trace or a key to the client.
     console.error('route planning failed', (e as Error).message)

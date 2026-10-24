@@ -294,3 +294,46 @@ describe('QlooProvider', () => {
     expect(candidates[0].descriptors.rating).toBe(4)
   })
 })
+
+describe('hard constraints reach Qloo as parameters', () => {
+  it('sends the popularity ceiling when hidden gems were asked for', async () => {
+    const urls: string[] = []
+    const fetchImpl = async (url: string | URL | Request) => {
+      urls.push(String(url))
+      return ok({ success: true, results: { entities: [] } })
+    }
+    await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({
+      locality: 'Abuja',
+      constraints: { popularityMax: 0.5 },
+    })
+    expect(urls[0]).toContain('filter.popularity.max=0.5')
+  })
+
+  it('sends no popularity parameter when none was asked for', async () => {
+    const urls: string[] = []
+    const fetchImpl = async (url: string | URL | Request) => {
+      urls.push(String(url))
+      return ok({ success: true, results: { entities: [] } })
+    }
+    await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({ locality: 'Abuja' })
+    expect(urls[0]).not.toContain('popularity')
+  })
+
+  it('replaces the locality query with a point when a radius is given', async () => {
+    const urls: string[] = []
+    const fetchImpl = async (url: string | URL | Request) => {
+      urls.push(String(url))
+      return ok({ success: true, results: { entities: [] } })
+    }
+    await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({
+      locality: 'Abuja',
+      constraints: { radius: { lat: 9.06, lng: 7.49, metres: 3000 } },
+    })
+    expect(urls[0]).toContain('filter.location.radius=3000')
+    // URLSearchParams form-encodes the space as '+'. Verified against the
+    // live host on 24 Oct: Qloo decodes '+' and '%20' identically here, so
+    // both forms return the same places.
+    expect(urls[0]).toContain('filter.location=POINT%287.49+9.06%29')
+    expect(urls[0]).not.toContain('filter.location.query')
+  })
+})

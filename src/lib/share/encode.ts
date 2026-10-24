@@ -79,6 +79,14 @@ const routeShape = z.object({
   providerKind: z.enum(['qloo', 'fixture']),
   alternatives: z.array(candidateShape).default([]),
   unfilledSlots: z.array(z.enum(['open', 'main', 'close'])).default([]),
+  // Optional with an empty default, so links made before intent existed
+  // still decode.
+  intentEcho: z
+    .object({
+      applied: z.array(z.object({ label: z.string(), detail: z.string() })),
+      ignored: z.array(z.object({ label: z.string(), reason: z.string() })),
+    })
+    .default({ applied: [], ignored: [] }),
 })
 
 function toBase64Url(json: string): string {

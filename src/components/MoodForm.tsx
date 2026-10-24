@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import type { Route } from '@/lib/providers/types'
+import type { Intent, Route } from '@/lib/providers/types'
 import { TimeWindowPicker } from './TimeWindowPicker'
+import { TunePanel } from './TunePanel'
 
 // Suggestions, not limits. Abuja leads because measured against the live Qloo
 // catalogue it returns the strongest coverage and the most walkable routes of
@@ -20,6 +21,7 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
   const [mood, setMood] = useState('')
   const [startHour, setStartHour] = useState(18)
   const [endHour, setEndHour] = useState(23)
+  const [intent, setIntent] = useState<Intent>({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,7 +33,7 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
       const res = await fetch('/api/route', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ city, mood, startHour, endHour }),
+        body: JSON.stringify({ city, mood, startHour, endHour, ...intent }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -115,6 +117,8 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
           setEndHour(eh)
         }}
       />
+
+      <TunePanel intent={intent} onChange={setIntent} />
 
       <button
         type="submit"

@@ -88,6 +88,8 @@ export type PlaceQuery = {
   tags?: { id: string; weight?: number }[]
   entities?: string[]
   take?: number
+  /** Hard constraints, applied by our code and invisible to the agent. */
+  constraints?: HardConstraints
 }
 
 export type Candidate = {
@@ -188,4 +190,6 @@ export type Route = {
   trace: TraceEntry[]
   providerKind: 'qloo' | 'fixture'
   unfilledSlots: SlotName[]
+  /** What the app understood from the intent, and what it could not apply. */
+  intentEcho: IntentEcho
 }
