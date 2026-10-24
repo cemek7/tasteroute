@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
 import { createOpenAIClient } from '@/lib/agent/openai-client'
 import { planRoute } from '@/lib/agent/loop'
 import { SpendLimiter } from '@/lib/agent/spend'
@@ -7,6 +6,7 @@ import { hasModelAccess } from '@/lib/env'
 import { buildRoute } from '@/lib/route/build'
 import { FixtureProvider } from '@/lib/providers/fixture'
 import { QlooProvider } from '@/lib/providers/qloo'
+import { parseRouteBody } from '@/lib/route/request-body'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -21,35 +21,21 @@ const limiter = new SpendLimiter({
   dailyCeiling: Number(process.env.TASTEROUTE_DAILY_ROUTE_CEILING ?? 400),
 })
 
-const bodySchema = z
-  .object({
-    city: z.string().min(1).max(80),
-    mood: z.string().min(1).max(200),
-    startHour: z.number().int().min(0).max(23),
-    endHour: z.number().int().min(1).max(24),
-  })
-  .refine((b) => b.endHour > b.startHour, {
-    message: 'The end of the evening has to come after the start.',
-  })
-
 export async function POST(req: Request) {
-  let parsed: z.infer<typeof bodySchema>
+  let body: unknown
   try {
-    parsed = bodySchema.parse(await req.json())
-  } catch (e) {
-    const message =
-      e instanceof z.ZodError
-        ? (e.issues[0]?.message ?? 'Tell us a city and a mood to work from.')
-        : 'Tell us a city and a mood to work from.'
-    return NextResponse.json({ error: message }, { status: 400 })
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'That request could not be read.' }, { status: 400 })
   }
 
-  const request = {
-    city: parsed.city,
-    mood: parsed.mood,
-    timeWindow: { startHour: parsed.startHour, endHour: parsed.endHour },
+  const parsed = parseRouteBody(body)
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 })
   }
-  const locality = { name: parsed.city }
+
+  const request = parsed.value
+  const locality = { name: request.city }
 
   // Without credentials, or past the daily ceiling, we still answer — from
   // clearly labelled sample data rather than with an error page.

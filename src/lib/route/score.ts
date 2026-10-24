@@ -102,11 +102,20 @@ function parseHour(raw: unknown): number | null {
  * True only when the venue publishes hours AND none of them reach the
  * requested window. A venue with no published hours is missing data, not
  * evidence that it is shut.
+ *
+ * Both sides can run past midnight — a window of 22:00-02:00 arrives as
+ * 22-26, and a venue open 20:00-02:00 as 20-26 — so each published range is
+ * also tried shifted a day forward. Without that, a venue open 20:00 until
+ * 02:00 looked shut for a night starting at 22:00.
  */
 function outsideWindow(c: Candidate, w: ScoreContext['timeWindow']): boolean {
   const ranges = openRanges(c.hours)
   if (ranges.length === 0) return false
-  return !ranges.some((r) => r.from < w.endHour && r.to > w.startHour)
+  const overlaps = (r: { from: number; to: number }) =>
+    r.from < w.endHour && r.to > w.startHour
+  return !ranges.some(
+    (r) => overlaps(r) || overlaps({ from: r.from + 24, to: r.to + 24 }),
+  )
 }
 
 export function scoreCandidate(

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { Route } from '@/lib/providers/types'
+import { TimeWindowPicker } from './TimeWindowPicker'
 
 // Suggestions, not limits. Abuja leads because measured against the live Qloo
 // catalogue it returns the strongest coverage and the most walkable routes of
@@ -106,36 +107,14 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
         ))}
       </div>
 
-      <div className="flex gap-3">
-        <label className="flex-1">
-          <span className="text-xs font-medium uppercase tracking-wide" style={legend}>
-            From
-          </span>
-          <input
-            type="number"
-            min={0}
-            max={23}
-            value={startHour}
-            onChange={(e) => setStartHour(Number(e.target.value))}
-            className="mt-1 w-full rounded-md border px-3 py-2.5 text-base"
-            style={field}
-          />
-        </label>
-        <label className="flex-1">
-          <span className="text-xs font-medium uppercase tracking-wide" style={legend}>
-            Until
-          </span>
-          <input
-            type="number"
-            min={1}
-            max={24}
-            value={endHour}
-            onChange={(e) => setEndHour(Number(e.target.value))}
-            className="mt-1 w-full rounded-md border px-3 py-2.5 text-base"
-            style={field}
-          />
-        </label>
-      </div>
+      <TimeWindowPicker
+        startHour={startHour}
+        endHour={endHour}
+        onChange={({ startHour: sh, endHour: eh }) => {
+          setStartHour(sh)
+          setEndHour(eh)
+        }}
+      />
 
       <button
         type="submit"
