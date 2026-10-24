@@ -72,6 +72,7 @@ describe('scoreCandidate', () => {
       id: 'bare',
       name: 'Bare',
       category: 'restaurant',
+      primaryGenre: null,
       lat: null,
       lng: null,
       address: null,

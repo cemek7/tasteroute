@@ -181,6 +181,7 @@ export const FIXTURE_CANDIDATES: Candidate[] = SEEDS.map((s, i) => ({
   id: s.id,
   name: s.name,
   category: s.category,
+  primaryGenre: `urn:tag:genre:place:${s.category}`,
   lat: s.lat,
   lng: s.lng,
   address: s.address,

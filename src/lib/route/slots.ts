@@ -75,12 +75,22 @@ function matchIn(text: string): { slot: SlotName; weight: number } | null {
 }
 
 /**
- * A venue gets one slot, decided by its own category first, then by its genre
- * tags. Offering tags are deliberately NOT consulted: a hotel that serves
- * coffee is not a cafe, and that is exactly how hotels were getting in.
+ * A venue gets one slot, decided by Qloo's own `primary_genre` when it has
+ * one, then by its category, then by its genre tags. Offering tags are
+ * deliberately NOT consulted: a hotel that serves coffee is not a cafe, and
+ * that is exactly how hotels were getting in.
  */
 function primarySlot(c: Candidate): { slot: SlotName; weight: number } | null {
   if (isLodging(c)) return null
+
+  // Qloo's own classification first, when it gave us one. The famous end of
+  // its catalogue is malls and hotels; the obscure end is housing estates,
+  // car parks and offices. A deny-list cannot keep up with that, so a
+  // classified place that matches no going-out kind is not one.
+  if (c.primaryGenre) {
+    const leaf = c.primaryGenre.replace('urn:tag:genre:place', '')
+    return matchIn(leaf)
+  }
 
   const category = (c.category ?? '').toLowerCase()
   if (category) {

@@ -19,6 +19,7 @@ const candidateShape = z.object({
   id: z.string(),
   name: z.string(),
   category: z.string().nullable().default(null),
+  primaryGenre: z.string().nullable().default(null),
   lat: z.number().nullable().default(null),
   lng: z.number().nullable().default(null),
   address: z.string().nullable().default(null),

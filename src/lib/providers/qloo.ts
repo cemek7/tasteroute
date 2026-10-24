@@ -139,6 +139,7 @@ function toCandidate(e: QlooEntity, index: number): Candidate {
     id: e.entity_id,
     name: e.name,
     category: categoryOf(e.tags ?? []),
+    primaryGenre: (p.primary_genre as { id?: string } | null | undefined)?.id ?? null,
     lat,
     lng,
     address: p.address ?? null,

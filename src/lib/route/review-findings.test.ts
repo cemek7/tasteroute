@@ -5,8 +5,11 @@ import { scoreCandidate, type ScoreContext } from './score'
 import { buildRoute, type BuildInput } from './build'
 import type { Candidate } from '../providers/types'
 
+// primaryGenre defaults to null so these cases exercise the category and tag
+// paths. A test that wants Qloo's own classification sets it explicitly.
 const mk = (over: Partial<Candidate>): Candidate => ({
   ...FIXTURE_CANDIDATES[0],
+  primaryGenre: null,
   tags: [],
   descriptors: {},
   ...over,

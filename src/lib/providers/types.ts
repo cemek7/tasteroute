@@ -94,6 +94,8 @@ export type Candidate = {
   id: string
   name: string
   category: string | null
+  /** Qloo's own single classification, e.g. urn:tag:genre:place:cocktail_bar. */
+  primaryGenre: string | null
   lat: number | null
   lng: number | null
   address: string | null
