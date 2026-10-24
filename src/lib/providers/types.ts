@@ -36,6 +36,8 @@ export type Intent = {
   discovery?: number
   budget?: 1 | 2 | 3 | 4
   area?: { radiusMetres: number } | null
+  /** Where the person actually is, if they let the browser tell us. */
+  here?: { lat: number; lng: number }
   requirements?: { dietary?: DietaryId[]; accessibility?: AccessibilityId[] }
   avoid?: string[]
   seedPlaces?: string[]

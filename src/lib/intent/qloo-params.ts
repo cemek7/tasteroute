@@ -1,3 +1,4 @@
+import { labelForHere } from './here'
 import { CONSTRAINT_LABELS } from './labels'
 import { ACCESSIBILITY_TAGS, DIETARY_TAGS } from './vocabulary'
 import type { HardConstraints, Intent, IntentEcho } from '../providers/types'
@@ -56,14 +57,24 @@ export function constraintsFromIntent(intent: Intent): {
   }
 
   if (intent.area) {
-    // The centre is resolved by the caller, which has a provider. 0,0 is a
-    // placeholder the caller must replace before a query is built — it is in
-    // the Gulf of Guinea, so a leak would be obvious rather than subtle.
-    constraints.radius = { lat: 0, lng: 0, metres: intent.area.radiusMetres }
-    applied.push({
-      label: CONSTRAINT_LABELS.radius,
-      detail: `within ${(intent.area.radiusMetres / 1000).toFixed(1)}km of the centre`,
-    })
+    if (intent.here) {
+      // A real position from the browser. Better than any centre we could
+      // guess, and it needs no lookup.
+      constraints.radius = { ...intent.here, metres: intent.area.radiusMetres }
+      applied.push({
+        label: CONSTRAINT_LABELS.radius,
+        detail: labelForHere(intent.area.radiusMetres),
+      })
+    } else {
+      // No position, so the caller resolves a city centre. 0,0 is a
+      // placeholder it must replace before a query is built — it is in the
+      // Gulf of Guinea, so a leak would be obvious rather than subtle.
+      constraints.radius = { lat: 0, lng: 0, metres: intent.area.radiusMetres }
+      applied.push({
+        label: CONSTRAINT_LABELS.radius,
+        detail: `within ${(intent.area.radiusMetres / 1000).toFixed(1)}km of the centre`,
+      })
+    }
   }
 
   // Dietary and accessibility needs are not taste. Somebody who needs a

@@ -10,6 +10,7 @@ import {
   AGE_BANDS,
 } from '@/lib/intent/vocabulary'
 import { forgetPreferences } from '@/lib/intent/preferences'
+import { UseMyLocation } from './UseMyLocation'
 import type { DietaryId, Intent } from '@/lib/providers/types'
 
 /**
@@ -273,6 +274,13 @@ export function TunePanel({
               <option value={10000}>10 km</option>
             </select>
           </label>
+
+          {intent.area && (
+            <UseMyLocation
+              here={intent.here}
+              onChange={(here) => onChange({ ...intent, here })}
+            />
+          )}
           <button
             type="button"
             onClick={() => {

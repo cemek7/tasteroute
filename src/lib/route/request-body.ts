@@ -8,6 +8,7 @@ import {
   PERSONAS,
   VIBE_IDS,
 } from '../intent/vocabulary'
+import { coordsSchema } from '../intent/here'
 import { normaliseWindow, type TimeWindow } from './window'
 import type { RouteRequest } from '../providers/types'
 
@@ -39,6 +40,7 @@ const intentSchema = z.object({
     .object({ radiusMetres: z.number().int().min(250).max(50_000) })
     .nullable()
     .optional(),
+  here: coordsSchema.optional(),
   requirements: z
     .object({
       dietary: z.array(z.enum(DIETARY_IDS)).max(5).optional(),
@@ -74,6 +76,7 @@ const INTENT_FIELDS = new Set([
   'avoid',
   'seedPlaces',
   'clarified',
+  'here',
 ])
 
 export type ParseResult =

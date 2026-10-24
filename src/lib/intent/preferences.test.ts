@@ -46,10 +46,14 @@ describe('preferences', () => {
     savePreferences({
       seedPlaces: ['Jazzhole'],
       clarified: { question: 'q', answer: 'a' },
+      here: { lat: 9.0579, lng: 7.4913 },
     })
     const raw = localStorage.getItem(PREFERENCES_KEY) ?? ''
     expect(raw).not.toContain('Jazzhole')
     expect(raw).not.toContain('answer')
+    // Where somebody was last night is not a preference.
+    expect(raw).not.toContain('9.05')
+    expect(loadPreferences().here).toBeUndefined()
   })
 
   it('discards a blob from an unknown version', () => {
