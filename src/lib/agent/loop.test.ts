@@ -326,3 +326,71 @@ describe('planRoute', () => {
     expect(result.route.trace.some((t) => t.tool === 'backfill_slots')).toBe(true)
   })
 })
+
+describe('conflicting intent relaxes rather than refusing', () => {
+  it('drops the softest constraint and says so when nothing matches', async () => {
+    const result = await planRoute({
+      provider: new FixtureProvider(),
+      request,
+      locality: { name: 'Lagos' },
+      client: scriptedClient([
+        { calls: [{ name: 'suggest_places', args: {} }] },
+        { calls: [{ name: 'finalize_route', args: {} }] },
+      ]),
+      maxRounds: 4,
+      // No fixture is this obscure, so the first search comes back empty.
+      constraints: { popularityMax: 0.01, priceLevelMax: 2 },
+    })
+    if ('error' in result) throw new Error(result.error)
+    expect(result.route.stops).toHaveLength(3)
+    expect(result.ignored.map((i) => i.label)).toContain('Hidden gems')
+  })
+
+  it('reports nothing ignored when the constraints were satisfiable', async () => {
+    const result = await planRoute({
+      provider: new FixtureProvider(),
+      request,
+      locality: { name: 'Lagos' },
+      client: scriptedClient([
+        { calls: [{ name: 'suggest_places', args: {} }] },
+        { calls: [{ name: 'finalize_route', args: {} }] },
+      ]),
+      maxRounds: 4,
+    })
+    if ('error' in result) throw new Error(result.error)
+    expect(result.ignored).toEqual([])
+  })
+
+  it('resolves a city centre before searching with a radius', async () => {
+    const seen: unknown[] = []
+    const watcher = {
+      kind: 'qloo' as const,
+      async findTags() {
+        return []
+      },
+      async seedEntities() {
+        return []
+      },
+      async suggestPlaces(q: { constraints?: { radius?: { lat: number } } }) {
+        seen.push(q.constraints?.radius)
+        const { FIXTURE_CANDIDATES } = await import('../providers/fixture')
+        return { candidates: FIXTURE_CANDIDATES, explainability: null, warnings: [] }
+      },
+    }
+    await planRoute({
+      provider: watcher,
+      request,
+      locality: { name: 'Lagos' },
+      client: scriptedClient([
+        { calls: [{ name: 'suggest_places', args: {} }] },
+        { calls: [{ name: 'finalize_route', args: {} }] },
+      ]),
+      maxRounds: 3,
+      constraints: { radius: { lat: 0, lng: 0, metres: 2000 } },
+    })
+    // The placeholder 0,0 must never reach a real search.
+    const used = seen.filter((r): r is { lat: number } => !!r)
+    expect(used.length).toBeGreaterThan(0)
+    expect(used.every((r) => r.lat !== 0)).toBe(true)
+  })
+})

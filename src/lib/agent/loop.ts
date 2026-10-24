@@ -1,9 +1,11 @@
 import { Budget, DEFAULT_MAX_ROUNDS } from './budget'
 import { trimForBudget } from './spend'
 import { createSession, type ToolDefinition } from './tools'
+import { cityCentre, RELAX_LABELS, relaxOnce } from '../intent/relax'
 import { UnknownLocalityError } from '../providers/qloo'
 import type {
   HardConstraints,
+  IntentEcho,
   Locality,
   Route,
   RouteRequest,
@@ -65,14 +67,32 @@ export type PlanOptions = {
 }
 
 export type PlanResult =
-  | { route: Route; roundsUsed: number }
+  | { route: Route; roundsUsed: number; ignored: IntentEcho['ignored'] }
   | { error: string; trace: TraceEntry[] }
 
 export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
   const { provider, request, locality, client } = opts
   const budget = new Budget(opts.maxRounds ?? DEFAULT_MAX_ROUNDS)
   const maxInputTokens = opts.maxInputTokens ?? DEFAULT_MAX_INPUT_TOKENS
-  const session = createSession({ provider, request, locality, constraints: opts.constraints })
+  const ignored: IntentEcho['ignored'] = []
+
+  let constraints = opts.constraints ?? {}
+  // A radius arrives without a centre, because only something holding a
+  // provider can find one. The placeholder must never reach a real query.
+  if (constraints.radius && constraints.radius.lat === 0 && constraints.radius.lng === 0) {
+    const centre = await cityCentre(provider, locality.name)
+    if (centre) {
+      constraints = { ...constraints, radius: { ...constraints.radius, ...centre } }
+    } else {
+      constraints = { ...constraints, radius: undefined }
+      ignored.push({
+        label: RELAX_LABELS.radius,
+        reason: 'we could not place the centre of this city, so the whole city was searched',
+      })
+    }
+  }
+
+  const session = createSession({ provider, request, locality, constraints })
 
   const messages: ChatMessage[] = [
     {
@@ -181,6 +201,33 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
     }
     if (forced.ok === false && forced.reason) lastFinalizeFailure = forced.reason
 
+    // Constraints can intersect to nothing. Give one up at a time, softest
+    // first, and record each so the person is told rather than left guessing.
+    while (!session.finalRoute) {
+      const relaxed = relaxOnce(constraints)
+      if (!relaxed) break
+      ignored.push({
+        label: RELAX_LABELS[relaxed.dropped] ?? String(relaxed.dropped),
+        reason: 'nothing matched with this applied, so it was relaxed',
+      })
+      constraints = relaxed.next
+      session.setConstraints(constraints)
+      try {
+        await session.dispatch('suggest_places', {
+          tagIds: session.requestedTagIds.slice(0, 5),
+        })
+      } catch (e) {
+        if (e instanceof UnknownLocalityError) {
+          return { error: e.message, trace: session.trace }
+        }
+      }
+      const retried = (await session.dispatch('finalize_route', {})) as {
+        ok?: boolean
+        reason?: string
+      }
+      if (retried.ok === false && retried.reason) lastFinalizeFailure = retried.reason
+    }
+
     // A three-stop route needs one venue of each kind. The model searches on
     // taste and can easily come back with, say, only bars. Cover the gap with
     // canonical queries and try once more.
@@ -209,7 +256,11 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
     }
   }
 
-  return { route: { ...route, trace: session.trace }, roundsUsed: budget.roundsUsed }
+  return {
+    route: { ...route, trace: session.trace },
+    roundsUsed: budget.roundsUsed,
+    ignored,
+  }
 }
 
 /**

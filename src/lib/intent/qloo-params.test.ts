@@ -42,3 +42,24 @@ describe('discovery maps to a popularity band', () => {
     ])
   })
 })
+
+describe('budget and area become hard constraints', () => {
+  it('turns a budget into a price ceiling', () => {
+    const { constraints, applied } = constraintsFromIntent({ budget: 2 })
+    expect(constraints.priceLevelMax).toBe(2)
+    expect(applied[0].label).toBe('Budget')
+  })
+
+  it('does not set a ceiling for the top budget tier', () => {
+    expect(constraintsFromIntent({ budget: 4 }).constraints.priceLevelMax).toBeUndefined()
+  })
+
+  it('records a requested radius without a centre, for the caller to resolve', () => {
+    const { constraints } = constraintsFromIntent({ area: { radiusMetres: 3000 } })
+    expect(constraints.radius).toEqual({ lat: 0, lng: 0, metres: 3000 })
+  })
+
+  it('treats a null area as the whole city', () => {
+    expect(constraintsFromIntent({ area: null }).constraints.radius).toBeUndefined()
+  })
+})

@@ -107,6 +107,8 @@ export type AgentSession = {
   dispatch(name: string, args: Record<string, unknown>): Promise<unknown>
   /** Searches for the named slots with canonical queries. Not model-facing. */
   backfillSlots(slots: SlotName[]): Promise<void>
+  /** Replaces the hard constraints, for the relaxation path. Not model-facing. */
+  setConstraints(next: HardConstraints): void
 }
 
 export function createSession(opts: {
@@ -117,7 +119,7 @@ export function createSession(opts: {
   constraints?: HardConstraints
 }): AgentSession {
   const { provider, request, locality } = opts
-  const constraints = opts.constraints ?? {}
+  let constraints = opts.constraints ?? {}
 
   const pool: Candidate[] = []
   const trace: TraceEntry[] = []
@@ -264,6 +266,10 @@ export function createSession(opts: {
       return finalRoute
     },
     requestedTagIds,
+
+    setConstraints(next) {
+      constraints = next
+    },
 
     async backfillSlots(slots) {
       const started = Date.now()

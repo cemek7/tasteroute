@@ -45,5 +45,24 @@ export function constraintsFromIntent(intent: Intent): {
     }
   }
 
+  if (intent.budget !== undefined && intent.budget < 4) {
+    constraints.priceLevelMax = intent.budget
+    applied.push({
+      label: 'Budget',
+      detail: `nothing above price level ${intent.budget} of 4`,
+    })
+  }
+
+  if (intent.area) {
+    // The centre is resolved by the caller, which has a provider. 0,0 is a
+    // placeholder the caller must replace before a query is built — it is in
+    // the Gulf of Guinea, so a leak would be obvious rather than subtle.
+    constraints.radius = { lat: 0, lng: 0, metres: intent.area.radiusMetres }
+    applied.push({
+      label: 'Nearby only',
+      detail: `within ${(intent.area.radiusMetres / 1000).toFixed(1)}km of the centre`,
+    })
+  }
+
   return { constraints, applied }
 }

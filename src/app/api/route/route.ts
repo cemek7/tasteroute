@@ -8,6 +8,7 @@ import { FixtureProvider } from '@/lib/providers/fixture'
 import { QlooProvider } from '@/lib/providers/qloo'
 import { parseRouteBody } from '@/lib/route/request-body'
 import { constraintsFromIntent } from '@/lib/intent/qloo-params'
+import { mergeEcho } from '@/lib/intent/echo'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: result.error, trace: result.trace }, { status: 422 })
     }
     return NextResponse.json({
-      route: { ...result.route, intentEcho: { applied, ignored: [] } },
+      route: { ...result.route, intentEcho: mergeEcho(applied, result.ignored) },
       roundsUsed: result.roundsUsed,
     })
   } catch (e) {

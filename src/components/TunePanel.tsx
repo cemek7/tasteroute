@@ -53,6 +53,54 @@ export function TunePanel({
               aria-label="How well known should the places be"
             />
           </label>
+          <fieldset>
+            <legend className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+              Budget
+            </legend>
+            <div className="mt-1 flex gap-1.5">
+              {([1, 2, 3, 4] as const).map((b) => {
+                const on = intent.budget === b
+                return (
+                  <button
+                    key={b}
+                    type="button"
+                    onClick={() => onChange({ ...intent, budget: on ? undefined : b })}
+                    className="flex-1 rounded border px-2 py-1.5 text-sm"
+                    style={{
+                      borderColor: on ? 'var(--accent)' : 'var(--border)',
+                      color: on ? 'var(--accent)' : 'var(--fg)',
+                    }}
+                  >
+                    {'\u20a6'.repeat(b)}
+                  </button>
+                )
+              })}
+            </div>
+          </fieldset>
+
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+              Stay within
+            </span>
+            <select
+              value={intent.area?.radiusMetres ?? 0}
+              onChange={(e) => {
+                const m = Number(e.target.value)
+                onChange({ ...intent, area: m === 0 ? null : { radiusMetres: m } })
+              }}
+              className="mt-1 w-full rounded-md border px-3 py-2 text-base"
+              style={{
+                borderColor: 'var(--border)',
+                background: 'var(--card)',
+                color: 'var(--fg)',
+              }}
+            >
+              <option value={0}>anywhere in the city</option>
+              <option value={1000}>1 km</option>
+              <option value={3000}>3 km</option>
+              <option value={10000}>10 km</option>
+            </select>
+          </label>
         </div>
       )}
     </section>
