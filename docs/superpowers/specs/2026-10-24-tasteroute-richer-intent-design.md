@@ -315,42 +315,72 @@ sufficient and avoids an optimiser dependency.
 
 ## 8. The agent asks one clarifying question
 
-"Something nice" is not a plan. Rather than guess or ask for everything up
-front, the agent may ask **exactly one** question before planning, and only
-when answering it would change which Qloo queries it runs.
+"Something nice" is not a plan. Rather than guess, or ask for everything up
+front, the agent may ask **one** question before planning — and only when
+answering it would change which Qloo queries it runs.
 
-The loop gains a fifth tool:
+This is the most genuinely agentic behaviour in the product. The model is not
+choosing stops; it is deciding **whether the intent it has been given is
+sufficient to act on**, which is judgment, and the question it asks is visible
+evidence of that judgment to anyone watching.
+
+### It lives on its own endpoint
+
+`POST /api/clarify` takes the same body as `/api/route` and runs the model with
+exactly one tool available:
 
 ```ts
 ask_user({
   question: string,          // one short sentence
   options: string[],         // 2-4 concrete choices
   because: string,           // why this changes the search
-}) -> { answered: string } | { skipped: true }
+})
 ```
 
-Rules, all enforced in our code rather than asked of the prompt:
+It returns either `{ question, options, because }` or `{ clear: true }`.
 
-- **At most one question per route.** A second call returns
-  `{ skipped: true }` with a note. The budget already caps rounds; this caps
-  interruptions.
-- **It may only be the first tool call.** Once the agent has searched, it has
-  what it needs; asking then is stalling.
-- **It must offer options.** A free-text follow-up is a second form.
+`/api/route` is untouched: still one phase, still the same contract, still
+covered by its existing tests. The answer arrives on the next request as one
+more optional field:
+
+```ts
+clarified?: { question: string; answer: string }
+```
+
+which the agent receives as context and may turn into tags like any other
+preference.
+
+This is a deliberate revision. An earlier draft of this spec made `/api/route`
+two-phase with a resume token, ranked the feature last, and marked it first to
+cut. That was the wrong shape: the risk came from the design, not the feature,
+and a separate endpoint removes it. Nothing is stored between calls because
+there is nothing to store — the client holds the question and sends the answer
+back with the request it was going to send anyway.
+
+### Rules, enforced in code rather than asked of the prompt
+
+- **One question, then plan.** The clarify endpoint is called at most once per
+  route by the client, and the model has no second tool to reach for.
+- **Options are required.** A free-text follow-up is just a second form. A
+  response without 2 to 4 options is treated as `{ clear: true }`.
 - **Skipping is always available and always safe.** The UI shows "just plan
-  it" next to the choices, and the agent proceeds on defaults.
-- **The question and the answer both appear in the trace**, so the route stays
-  auditable.
+  it" beside the choices. Skipping sends no `clarified` field and the route is
+  planned on defaults.
+- **A clear request is not interrupted.** If the mood already names a vibe, a
+  venue kind or an occasion, the model is told to return `clear`. A question on
+  every request means the gate is wrong.
+- **The question, the answer, and a skip all appear in the trace**, so the
+  route stays auditable either way.
+- **It shares the spend limiter.** Past the daily ceiling the clarify endpoint
+  returns `{ clear: true }` rather than spending, so the fallback is a plain
+  route rather than an error.
 
-This is the most genuinely agentic behaviour available to the product: the
-model decides *whether the intent is sufficient*, which is judgment, and the
-question it asks is visible evidence of that judgment to anyone watching.
+### Cost
 
-It also changes the request shape: planning becomes two-phase when a question
-is asked. The endpoint returns `{ question, resumeToken }`, and the client
-posts back `{ ...originalRequest, answer, resumeToken }`. The token is the
-original request re-validated, not server state, so nothing is stored between
-calls and a stale token cannot resume into a different search.
+One extra model call per route, on a prompt carrying only the city, the mood
+and the time window — no Qloo results, no tool schemas beyond the one. On
+`gpt-5-mini` that is well under a tenth of a cent, against roughly $0.006 for
+the planning call it precedes.
 
 ## 9. A narrative for the evening
 
@@ -506,13 +536,16 @@ Added by sections 7 to 11:
   becomes one quoted sentence under 90 characters.
 - **`openTonight` agrees with scoring**: for any candidate and window, the card
   claims open if and only if `outsideWindow` returns false.
-- **One question only**: a second `ask_user` call in the same route returns
-  `{ skipped: true }`, and the plan still completes.
-- **A question cannot come after a search**: `ask_user` after
-  `suggest_places` is refused.
-- **Skipping is safe**: a run where the question is skipped produces a route.
-- **The resume token is not state**: a token from one request cannot resume a
-  different city or mood; the second call is validated from scratch.
+- **A response without usable options is treated as clear**: zero, one or five
+  options yields `{ clear: true }` rather than an unanswerable prompt.
+- **A specific mood is not interrupted**: a mood naming a vibe and a venue kind
+  returns `{ clear: true }`.
+- **Skipping is safe**: a request with no `clarified` field plans normally,
+  which is the existing path and must stay green.
+- **An answer reaches the planner as context**: a request carrying `clarified`
+  puts it in the agent's first message, and the trace records it.
+- **Past the ceiling, clarify does not spend**: the limiter being exhausted
+  returns `{ clear: true }`.
 - **The narrative cites only facts**: a route whose stops matched no vibe tag
   produces a narrative mentioning no vibe, and the walking total in the line
   equals the sum of the legs.
@@ -542,10 +575,10 @@ Added by sections 7 to 11:
    demo is public, so this should hold, but it is unverified. Task 1 fetches
    one image and checks the status. If it 403s, the cards drop photos and keep
    everything else.
-5. **The clarifying question is the riskiest addition.** It makes planning
-   two-phase and touches the loop, the endpoint and the client. It is also the
-   strongest judging material. It goes last of the features and first of the
-   cuts if the deadline tightens.
+5. **The clarifying question is now low-risk.** On its own endpoint it does
+   not touch `/api/route` at all, so it can ship early and be removed by
+   deleting one route handler and one component. It is also the strongest
+   judging material, so it ships third.
 6. **Deadline.** 30 October, 11:45pm EDT. This is well over six days of
    comfortable work, so the cut order matters. Keep, in this order:
 
@@ -554,13 +587,14 @@ Added by sections 7 to 11:
    2. **Requirements, budget, area** — the hard filters, and `intentEcho`
       with them, because a silently dropped requirement is the one defect this
       product must not have.
-   3. **Richer stop cards** — largest visible gain per hour of work; the data
+   3. **The clarifying question** — the strongest evidence of agency, and on
+      its own endpoint it risks nothing already built.
+   4. **Richer stop cards** — largest visible gain per hour of work; the data
       is already in hand.
-   4. **Occasion, vibe, party, persona** — the preference signals.
-   5. **Narrative** — pure function over facts already computed.
-   6. **Swap a stop** — no new Qloo or model spend.
-   7. **Stored preferences** — convenience only.
-   8. **The clarifying question** — highest risk, highest judging value.
+   5. **Occasion, vibe, party, persona** — the preference signals.
+   6. **Narrative** — pure function over facts already computed.
+   7. **Swap a stop** — no new Qloo or model spend.
+   8. **Stored preferences** — convenience only.
    9. **Demographics** — may be deleted outright after item 2 of these open
       items is answered.
 
@@ -577,7 +611,8 @@ Added by sections 7 to 11:
 - If the clarifying question fires on inputs that were already clear, it is an
   obstacle rather than intelligence. One question that earns its place is the
   bar; a question on every request means the gate is wrong and it should be
-  restricted to inputs under a length or specificity threshold.
+  restricted to inputs under a length or specificity threshold. Measure this on
+  real moods before shipping, not after.
 - If the narrative reads as filler on real routes rather than telling the
   reader something they did not already see in the three cards, it is
   decoration and should be cut.
