@@ -8,7 +8,7 @@ const input = (over: Partial<BuildInput> = {}): BuildInput => ({
   request: {
     city: 'Lagos',
     mood: 'low-key but not dead',
-    timeWindow: { startHour: 18, endHour: 23 },
+    timeWindow: { startHour: 18, endHour: 23 }, intent: {},
   },
   locality: { name: 'Lagos' },
   requestedTagIds: [],

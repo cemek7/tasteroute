@@ -6,7 +6,7 @@ import type { RouteRequest } from '../providers/types'
 const request: RouteRequest = {
   city: 'Lagos',
   mood: 'low-key but not dead',
-  timeWindow: { startHour: 18, endHour: 23 },
+  timeWindow: { startHour: 18, endHour: 23 }, intent: {},
 }
 
 /** Replays a fixed script of assistant turns, ignoring the messages sent. */

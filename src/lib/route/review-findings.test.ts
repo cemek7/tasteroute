@@ -21,7 +21,7 @@ const ctx = (over: Partial<ScoreContext> = {}): ScoreContext => ({
 
 const input = (candidates: Candidate[]): BuildInput => ({
   candidates,
-  request: { city: 'Abuja', mood: 'any', timeWindow: { startHour: 18, endHour: 23 } },
+  request: { city: 'Abuja', mood: 'any', timeWindow: { startHour: 18, endHour: 23 }, intent: {} },
   locality: { name: 'Abuja' },
   requestedTagIds: [],
   explainability: null,

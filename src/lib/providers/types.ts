@@ -1,9 +1,68 @@
+import type {
+  AccessibilityId,
+  AgeBand,
+  DietaryId,
+  OccasionId,
+  PartyComposition,
+  Persona,
+  VibeId,
+} from '../intent/vocabulary'
+
 export type SlotName = 'open' | 'main' | 'close'
+
+/**
+ * Everything optional a person can tell us. Split from the required three so
+ * that the two halves of the system can each take exactly the object they
+ * need: `constraintsFromIntent` for what our code enforces, and
+ * `resolvePreferenceTags` for what the agent interprets.
+ */
+export type Intent = {
+  vibe?: VibeId[]
+  occasion?: OccasionId
+  party?: { size: number; composition?: PartyComposition }
+  persona?: Persona
+  /** Never stored, never logged, never echoed back. */
+  demographics?: { ageBand?: AgeBand; gender?: 'male' | 'female' }
+  discovery?: number
+  budget?: 1 | 2 | 3 | 4
+  area?: { radiusMetres: number } | null
+  requirements?: { dietary?: DietaryId[]; accessibility?: AccessibilityId[] }
+  avoid?: string[]
+  seedPlaces?: string[]
+  clarified?: { question: string; answer: string }
+}
 
 export type RouteRequest = {
   city: string
   mood: string
   timeWindow: { startHour: number; endHour: number }
+  /** Always present, often empty. No call site can forget it exists. */
+  intent: Intent
+}
+
+/**
+ * What the app understood, and what it could not act on. The intake-side
+ * counterpart to the trace panel: a person who asked for halal and got a
+ * route without it is owed the reason, not a silent substitution.
+ */
+export type IntentEcho = {
+  applied: { label: string; detail: string }[]
+  ignored: { label: string; reason: string }[]
+}
+
+/**
+ * The half of the intent our code enforces, expressed as Qloo parameters.
+ * Declared here rather than in intent/qloo-params so the module graph runs
+ * one way: intent depends on providers, never the reverse.
+ */
+export type HardConstraints = {
+  popularityMin?: number
+  popularityMax?: number
+  priceLevelMax?: number
+  radius?: { lat: number; lng: number; metres: number }
+  requiredTags?: string[]
+  excludeTags?: string[]
+  demographics?: { ageBand?: string; gender?: string }
 }
 
 export type Locality = {

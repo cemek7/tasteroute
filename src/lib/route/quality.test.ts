@@ -39,7 +39,7 @@ describe('lodging is never an outing stop', () => {
     })
     const r = buildRoute({
       candidates: [...FIXTURE_CANDIDATES, hotel],
-      request: { city: 'Lagos', mood: 'anything', timeWindow: { startHour: 18, endHour: 23 } },
+      request: { city: 'Lagos', mood: 'anything', timeWindow: { startHour: 18, endHour: 23 }, intent: {} },
       locality: { name: 'Lagos' },
       requestedTagIds: [],
       explainability: null,
@@ -96,7 +96,7 @@ describe('proximity keeps the stops walkable', () => {
   it('builds a route whose legs are walkable when near options exist', () => {
     const r = buildRoute({
       candidates: FIXTURE_CANDIDATES,
-      request: { city: 'Lagos', mood: 'anything', timeWindow: { startHour: 18, endHour: 23 } },
+      request: { city: 'Lagos', mood: 'anything', timeWindow: { startHour: 18, endHour: 23 }, intent: {} },
       locality: { name: 'Lagos' },
       requestedTagIds: [],
       explainability: null,
@@ -220,7 +220,7 @@ describe('a route never asks for an unreasonable walk', () => {
 
     const r = buildRoute({
       candidates: [anchorRestaurant, farBar, nearBar, nearCafe],
-      request: { city: 'Lagos', mood: 'any', timeWindow: { startHour: 18, endHour: 23 } },
+      request: { city: 'Lagos', mood: 'any', timeWindow: { startHour: 18, endHour: 23 }, intent: {} },
       locality: { name: 'Lagos' },
       requestedTagIds: [],
       explainability: null,
@@ -246,7 +246,7 @@ describe('a route never asks for an unreasonable walk', () => {
 
     const r = buildRoute({
       candidates: [anchorRestaurant, farBar, nearCafe],
-      request: { city: 'Lagos', mood: 'any', timeWindow: { startHour: 18, endHour: 23 } },
+      request: { city: 'Lagos', mood: 'any', timeWindow: { startHour: 18, endHour: 23 }, intent: {} },
       locality: { name: 'Lagos' },
       requestedTagIds: [],
       explainability: null,
@@ -330,7 +330,7 @@ describe('the anchor is chosen for the route, not for itself', () => {
 
     const r = buildRoute({
       candidates: [remoteStar, clusterRestaurant, clusterCafe, clusterBar],
-      request: { city: 'Lagos', mood: 'any', timeWindow: { startHour: 18, endHour: 23 } },
+      request: { city: 'Lagos', mood: 'any', timeWindow: { startHour: 18, endHour: 23 }, intent: {} },
       locality: { name: 'Lagos' },
       requestedTagIds: [],
       explainability: null,
@@ -359,7 +359,7 @@ describe('the anchor is chosen for the route, not for itself', () => {
 
     const r = buildRoute({
       candidates: [remoteOnly, cafe, bar],
-      request: { city: 'Lagos', mood: 'any', timeWindow: { startHour: 18, endHour: 23 } },
+      request: { city: 'Lagos', mood: 'any', timeWindow: { startHour: 18, endHour: 23 }, intent: {} },
       locality: { name: 'Lagos' },
       requestedTagIds: [],
       explainability: null,
@@ -380,7 +380,7 @@ describe('the anchor is chosen for the route, not for itself', () => {
     ]
     const input: BuildInput = {
       candidates: cands,
-      request: { city: 'Lagos', mood: 'any', timeWindow: { startHour: 18, endHour: 23 } },
+      request: { city: 'Lagos', mood: 'any', timeWindow: { startHour: 18, endHour: 23 }, intent: {} },
       locality: { name: 'Lagos' },
       requestedTagIds: [],
       explainability: null,

@@ -6,7 +6,7 @@ import type { Route, RouteRequest } from '../providers/types'
 const request: RouteRequest = {
   city: 'Lagos',
   mood: 'anything',
-  timeWindow: { startHour: 18, endHour: 23 },
+  timeWindow: { startHour: 18, endHour: 23 }, intent: {},
 }
 
 const session = () =>

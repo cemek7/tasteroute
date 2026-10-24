@@ -7,7 +7,7 @@ import type { Route } from '../providers/types'
 const route = (): Route => {
   const r = buildRoute({
     candidates: FIXTURE_CANDIDATES,
-    request: { city: 'Lagos', mood: 'low-key', timeWindow: { startHour: 18, endHour: 23 } },
+    request: { city: 'Lagos', mood: 'low-key', timeWindow: { startHour: 18, endHour: 23 }, intent: {} },
     locality: { name: 'Lagos' },
     requestedTagIds: [],
     explainability: null,
