@@ -500,3 +500,48 @@ describe('several required tags must ALL hold', () => {
     expect(urls[0]).not.toContain('operator.filter.tags')
   })
 })
+
+describe('explainability keeps the widest tier Qloo reports', () => {
+  it('prefers top10 over top3 for the same seed, since both are true', async () => {
+    const fetchImpl = async () =>
+      ok({
+        success: true,
+        results: { entities: [] },
+        query: {
+          explainability: {
+            'signal.interests.entities': {
+              effect_on_top3_recs: [{ entity_id: 'seed-1', avg_score: 1 }],
+              effect_on_top10_recs: [{ entity_id: 'seed-1', avg_score: 0.9 }],
+            },
+          },
+        },
+      })
+    const { explainability } = await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({
+      locality: 'Abuja',
+      entities: ['seed-1'],
+    })
+    expect(explainability?.signalEntities).toHaveLength(1)
+    expect(explainability?.signalEntities[0].topN).toBe(10)
+  })
+
+  it('keeps all when Qloo reports it', async () => {
+    const fetchImpl = async () =>
+      ok({
+        success: true,
+        results: { entities: [] },
+        query: {
+          explainability: {
+            'signal.interests.entities': {
+              effect_on_top3_recs: [{ entity_id: 's', avg_score: 1 }],
+              effect_on_all_recs: [{ entity_id: 's', avg_score: 0.5 }],
+            },
+          },
+        },
+      })
+    const { explainability } = await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({
+      locality: 'Abuja',
+      entities: ['s'],
+    })
+    expect(explainability?.signalEntities[0].topN).toBe('all')
+  })
+})

@@ -548,3 +548,38 @@ describe('a slot-coverage failure is not a reason to drop a requirement', () => 
     expect(result.route.confidence).toBe('weak')
   })
 })
+
+describe('avoid terms are resolved to tags, or reported', () => {
+  it('reports a term Qloo has no tag for instead of pretending it was excluded', async () => {
+    const result = await planRoute({
+      provider: new FixtureProvider(),
+      request,
+      locality: { name: 'Lagos' },
+      client: scriptedClient([
+        { calls: [{ name: 'suggest_places', args: {} }] },
+        { calls: [{ name: 'finalize_route', args: {} }] },
+      ]),
+      maxRounds: 3,
+      constraints: { excludeTags: ['zzzznope'] },
+    })
+    if ('error' in result) throw new Error(result.error)
+    const avoiding = result.ignored.find((i) => i.label === 'Avoiding')
+    expect(avoiding?.reason).toContain('zzzznope')
+  })
+
+  it('says nothing when every avoid term resolved', async () => {
+    const result = await planRoute({
+      provider: new FixtureProvider(),
+      request,
+      locality: { name: 'Lagos' },
+      client: scriptedClient([
+        { calls: [{ name: 'suggest_places', args: {} }] },
+        { calls: [{ name: 'finalize_route', args: {} }] },
+      ]),
+      maxRounds: 3,
+      constraints: { excludeTags: ['cocktails'] },
+    })
+    if ('error' in result) throw new Error(result.error)
+    expect(result.ignored.map((i) => i.label)).not.toContain('Avoiding')
+  })
+})

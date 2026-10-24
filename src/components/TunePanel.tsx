@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import {
+  ACCESSIBILITY_IDS,
   DIETARY_IDS,
   OCCASION_IDS,
   PARTY_COMPOSITIONS,
@@ -11,7 +12,8 @@ import {
 } from '@/lib/intent/vocabulary'
 import { forgetPreferences } from '@/lib/intent/preferences'
 import { UseMyLocation } from './UseMyLocation'
-import type { DietaryId, Intent } from '@/lib/providers/types'
+import { ChipListInput } from './ChipListInput'
+import type { AccessibilityId, DietaryId, Intent } from '@/lib/providers/types'
 
 /**
  * Collapsed by default, and nothing in it is required. A judge who wants a
@@ -248,8 +250,53 @@ export function TunePanel({
                   </button>
                 )
               })}
+              {ACCESSIBILITY_IDS.map((a: AccessibilityId) => {
+                const on = intent.requirements?.accessibility?.includes(a) ?? false
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => {
+                      const current = intent.requirements?.accessibility ?? []
+                      const next = on ? current.filter((x) => x !== a) : [...current, a]
+                      onChange({
+                        ...intent,
+                        requirements: {
+                          ...intent.requirements,
+                          accessibility: next.length ? next : undefined,
+                        },
+                      })
+                    }}
+                    className="rounded-full border px-2.5 py-1 text-xs"
+                    style={{
+                      borderColor: on ? 'var(--accent)' : 'var(--border)',
+                      color: on ? 'var(--accent)' : 'var(--muted)',
+                    }}
+                  >
+                    {a.replace(/wheelchair_/, 'wheelchair ').replace(/_/g, ' ')}
+                  </button>
+                )
+              })}
             </div>
           </fieldset>
+
+          <ChipListInput
+            legend="Places you already like"
+            placeholder="name one, then press enter"
+            values={intent.seedPlaces ?? []}
+            max={5}
+            onChange={(next) =>
+              onChange({ ...intent, seedPlaces: next.length ? next : undefined })
+            }
+          />
+
+          <ChipListInput
+            legend="Rather avoid"
+            placeholder="e.g. hookah, karaoke"
+            values={intent.avoid ?? []}
+            max={8}
+            onChange={(next) => onChange({ ...intent, avoid: next.length ? next : undefined })}
+          />
 
           <label className="block">
             <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>

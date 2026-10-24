@@ -242,21 +242,32 @@ function toExplainability(parsed: QlooInsightsResponse): ProviderExplainability 
   const block = parsed.query?.explainability?.['signal.interests.entities']
   if (!block) return null
 
-  const signalEntities: ProviderExplainability['signalEntities'] = []
-  const seen = new Set<string>()
+  // Qloo reports the same seed across several tiers — top3, top5, top10, all.
+  // Every tier is true, so keep the WIDEST one: a candidate Qloo says the
+  // seed influenced in the top ten is genuinely explained by it, and keeping
+  // only the top three threw away most of what Qloo told us.
+  const widest = new Map<string, { avgScore: number; topN: 3 | 5 | 10 | 'all' }>()
+  const breadth = (t: 3 | 5 | 10 | 'all') => (t === 'all' ? Number.POSITIVE_INFINITY : t)
+
   for (const [key, topN] of TOP_N_KEYS) {
     for (const effect of block[key] ?? []) {
-      if (seen.has(effect.entity_id)) continue
-      seen.add(effect.entity_id)
-      signalEntities.push({
-        entityId: effect.entity_id,
-        avgScore: effect.avg_score,
-        topN,
-        // Filled by the caller, which is the only place that still holds the
-        // candidate list this block was computed against.
-        appliesTo: [],
-      })
+      const held = widest.get(effect.entity_id)
+      if (!held || breadth(topN) > breadth(held.topN)) {
+        widest.set(effect.entity_id, { avgScore: effect.avg_score, topN })
+      }
     }
   }
+
+  const signalEntities: ProviderExplainability['signalEntities'] = [...widest.entries()].map(
+    ([entityId, v]) => ({
+      entityId,
+      avgScore: v.avgScore,
+      topN: v.topN,
+      // Filled by the caller, which is the only place that still holds the
+      // candidate list this block was computed against.
+      appliesTo: [],
+    }),
+  )
+
   return signalEntities.length > 0 ? { signalEntities } : null
 }

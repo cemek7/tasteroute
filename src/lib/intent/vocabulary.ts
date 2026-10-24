@@ -49,10 +49,18 @@ export type AgeBand = (typeof AGE_BANDS)[number]
 export const DIETARY_IDS = ['halal', 'vegetarian', 'vegan', 'gluten_free', 'kosher'] as const
 export type DietaryId = (typeof DIETARY_IDS)[number]
 
+/**
+ * Exactly the accessibility tags Qloo publishes, confirmed live. There is no
+ * step-free tag — a query for "step free" returns parking and wifi — so the
+ * product does not offer one. Offering an option that silently maps to
+ * something else is worse than not offering it.
+ */
 export const ACCESSIBILITY_IDS = [
   'wheelchair_entrance',
   'wheelchair_restroom',
-  'step_free',
+  'wheelchair_seating',
+  'wheelchair_elevator',
+  'wheelchair_parking',
 ] as const
 export type AccessibilityId = (typeof ACCESSIBILITY_IDS)[number]
 
@@ -68,7 +76,9 @@ export const DIETARY_TAGS: Record<DietaryId, string> = {
 export const ACCESSIBILITY_TAGS: Record<AccessibilityId, string> = {
   wheelchair_entrance: 'urn:tag:accessibility:place:wheelchair_accessible_entrance',
   wheelchair_restroom: 'urn:tag:accessibility:place:wheelchair_accessible_restroom',
-  step_free: 'urn:tag:accessibility:place:wheelchair_accessible_parking_lot',
+  wheelchair_seating: 'urn:tag:accessibility:place:wheelchair_accessible_seating',
+  wheelchair_elevator: 'urn:tag:accessibility:place:wheelchair_accessible_elevator',
+  wheelchair_parking: 'urn:tag:accessibility:place:wheelchair_accessible_parking_lot',
 }
 
 /**

@@ -1,6 +1,8 @@
 import { Budget, DEFAULT_MAX_ROUNDS } from './budget'
 import { trimForBudget } from './spend'
 import { createSession, resolvePreferenceTags, type ToolDefinition } from './tools'
+import { resolveAvoidTags } from '../intent/avoid'
+import { CONSTRAINT_LABELS } from '../intent/labels'
 import { cityCentre, RELAX_LABELS, relaxOnce } from '../intent/relax'
 import { UnknownLocalityError } from '../providers/qloo'
 import type {
@@ -92,15 +94,62 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
     }
   }
 
+  // `avoid` arrives as free text. Qloo ignores a bare word in
+  // filter.exclude.tags, so it has to be resolved to URNs or it is a promise
+  // we cannot keep. Anything unresolvable is reported rather than dropped.
+  if (constraints.excludeTags?.length) {
+    const resolvedAvoid = await resolveAvoidTags(provider, constraints.excludeTags)
+    constraints = {
+      ...constraints,
+      excludeTags: resolvedAvoid.tagIds.length > 0 ? resolvedAvoid.tagIds : undefined,
+    }
+    if (resolvedAvoid.unresolved.length > 0) {
+      ignored.push({
+        label: CONSTRAINT_LABELS.excludeTags,
+        reason: `Qloo has no tag for ${resolvedAvoid.unresolved.join(', ')}, so it could not be excluded`,
+      })
+    }
+  }
+
   const session = createSession({ provider, request, locality, constraints })
+
+  // Places the person named. Seeding with entities is the ONLY way Qloo
+  // returns its own explainability, which is the strongest reason a stop can
+  // carry — so this runs whether or not the model thinks to do it.
+  let seededEntityIds: string[] = []
+  if (request.intent.seedPlaces?.length) {
+    try {
+      const found = (await session.dispatch('seed_entities', {
+        names: request.intent.seedPlaces,
+      })) as { entities?: { entityId: string; name: string }[] }
+      seededEntityIds = (found.entities ?? []).map((e) => e.entityId)
+      const foundNames = new Set((found.entities ?? []).map((e) => e.name.toLowerCase()))
+      const missed = request.intent.seedPlaces.filter(
+        (n) => !foundNames.has(n.toLowerCase()),
+      )
+      if (missed.length > 0) {
+        ignored.push({
+          label: 'Places you like',
+          reason: `Qloo could not find ${missed.join(', ')}, so it did not shape the search`,
+        })
+      }
+    } catch (e) {
+      if (e instanceof UnknownLocalityError) {
+        return { error: e.message, trace: session.trace }
+      }
+    }
+  }
 
   // Resolve the stated preferences into real Qloo tags and seed the pool with
   // them, so the agent spends its rounds refining rather than rediscovering
   // what the person already told us.
   const preferences = await resolvePreferenceTags(provider, request.intent)
-  if (preferences.tagIds.length > 0) {
+  if (preferences.tagIds.length > 0 || seededEntityIds.length > 0) {
     try {
-      await session.dispatch('suggest_places', { tagIds: preferences.tagIds })
+      await session.dispatch('suggest_places', {
+        tagIds: preferences.tagIds,
+        entityIds: seededEntityIds,
+      })
     } catch (e) {
       if (e instanceof UnknownLocalityError) {
         return { error: e.message, trace: session.trace }

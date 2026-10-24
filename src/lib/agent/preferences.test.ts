@@ -128,3 +128,99 @@ describe('what the preferences did is reported back', () => {
     expect(labels).toContain('Going with')
   })
 })
+
+describe('places you already like reach Qloo as entity signals', () => {
+  it('seeds the search with them, which is the only path to explainability', async () => {
+    const { planRoute } = await import('./loop')
+    const seen: { entities?: string[] }[] = []
+    const watcher = {
+      kind: 'qloo' as const,
+      async findTags() {
+        return []
+      },
+      async seedEntities(names: string[]) {
+        return names.map((n) => ({ entityId: `e-${n}`, name: n }))
+      },
+      async suggestPlaces(q: { entities?: string[] }) {
+        seen.push({ entities: q.entities })
+        const { FIXTURE_CANDIDATES } = await import('../providers/fixture')
+        return {
+          candidates: FIXTURE_CANDIDATES,
+          explainability: (q.entities ?? []).length
+            ? {
+                signalEntities: [
+                  {
+                    entityId: q.entities![0],
+                    avgScore: 1,
+                    topN: 3 as const,
+                    appliesTo: FIXTURE_CANDIDATES.slice(0, 3).map((c) => c.id),
+                  },
+                ],
+              }
+            : null,
+          warnings: [],
+        }
+      },
+    }
+
+    const result = await planRoute({
+      provider: watcher,
+      request: {
+        city: 'Abuja',
+        mood: 'dinner',
+        timeWindow: { startHour: 19, endHour: 23 },
+        intent: { seedPlaces: ['Jazzhole'] },
+      },
+      locality: { name: 'Abuja' },
+      client: {
+        async complete() {
+          return { toolCalls: [] }
+        },
+      },
+      maxRounds: 3,
+    })
+    if ('error' in result) throw new Error(result.error)
+
+    // The named place became an entity signal.
+    expect(seen.some((q) => (q.entities ?? []).includes('e-Jazzhole'))).toBe(true)
+    // And that is what lets a stop cite Qloo's own explainability.
+    expect(
+      result.route.stops.some((s) => s.evidence.some((e) => e.kind === 'explainability')),
+    ).toBe(true)
+  })
+
+  it('reports a named place Qloo could not find', async () => {
+    const { planRoute } = await import('./loop')
+    const blind = {
+      kind: 'qloo' as const,
+      async findTags() {
+        return []
+      },
+      async seedEntities() {
+        return []
+      },
+      async suggestPlaces() {
+        const { FIXTURE_CANDIDATES } = await import('../providers/fixture')
+        return { candidates: FIXTURE_CANDIDATES, explainability: null, warnings: [] }
+      },
+    }
+    const result = await planRoute({
+      provider: blind,
+      request: {
+        city: 'Abuja',
+        mood: 'dinner',
+        timeWindow: { startHour: 19, endHour: 23 },
+        intent: { seedPlaces: ['Somewhere Imaginary'] },
+      },
+      locality: { name: 'Abuja' },
+      client: {
+        async complete() {
+          return { toolCalls: [] }
+        },
+      },
+      maxRounds: 3,
+    })
+    if ('error' in result) throw new Error(result.error)
+    expect(result.ignored.some((i) => i.reason.includes('Somewhere Imaginary'))).toBe(true)
+  })
+})

@@ -88,7 +88,7 @@ describe('parseRouteBody with intent', () => {
       discovery: 0.8,
       budget: 2,
       area: { radiusMetres: 3000 },
-      requirements: { dietary: ['halal'], accessibility: ['step_free'] },
+      requirements: { dietary: ['halal'], accessibility: ['wheelchair_seating'] },
       avoid: ['hookah'],
       seedPlaces: ['Jazzhole'],
     })
