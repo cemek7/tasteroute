@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { Intent, Route } from '@/lib/providers/types'
 import { TimeWindowPicker } from './TimeWindowPicker'
 import { TunePanel } from './TunePanel'
+import { ClarifyPrompt } from './ClarifyPrompt'
 
 // Suggestions, not limits. Abuja leads because measured against the live Qloo
 // catalogue it returns the strongest coverage and the most walkable routes of
@@ -24,16 +25,23 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
   const [intent, setIntent] = useState<Intent>({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState<{
+    question: string
+    options: string[]
+    because: string
+  } | null>(null)
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
+  const body = (extra: Partial<Intent> = {}) =>
+    JSON.stringify({ city, mood, startHour, endHour, ...intent, ...extra })
+
+  async function plan(extra: Partial<Intent> = {}) {
     setBusy(true)
     setError(null)
     try {
       const res = await fetch('/api/route', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ city, mood, startHour, endHour, ...intent }),
+        body: body(extra),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -46,6 +54,36 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
     } finally {
       setBusy(false)
     }
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setPending(null)
+
+    // Ask the planner whether it has been told enough. Any failure here
+    // answers "clear" and we go straight to planning.
+    try {
+      setBusy(true)
+      const res = await fetch('/api/clarify', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: body(),
+      })
+      const asked = await res.json()
+      if (res.ok && asked?.question && Array.isArray(asked.options)) {
+        setPending({
+          question: String(asked.question),
+          options: asked.options.map(String),
+          because: String(asked.because ?? ''),
+        })
+        setBusy(false)
+        return
+      }
+    } catch {
+      // Fall through to planning.
+    }
+
+    await plan()
   }
 
   const field = {
@@ -133,6 +171,23 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
         <p className="text-center text-xs" style={{ color: 'var(--muted)' }}>
           The planner makes several Qloo calls. This takes up to a minute.
         </p>
+      )}
+
+      {pending && (
+        <ClarifyPrompt
+          question={pending.question}
+          options={pending.options}
+          because={pending.because}
+          onAnswer={(answer) => {
+            setPending(null)
+            // Only ever one of the options the server itself produced.
+            void plan({ clarified: { question: pending.question, answer } })
+          }}
+          onSkip={() => {
+            setPending(null)
+            void plan()
+          }}
+        />
       )}
 
       {error && (

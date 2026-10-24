@@ -94,10 +94,15 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
 
   const session = createSession({ provider, request, locality, constraints })
 
+  const clarified = request.intent.clarified
   const messages: ChatMessage[] = [
     {
       role: 'user',
-      content: `City: ${request.city}\nMood: ${request.mood}\nOut between ${request.timeWindow.startHour}:00 and ${request.timeWindow.endHour}:00.`,
+      content:
+        `City: ${request.city}\nMood: ${request.mood}\n` +
+        `Out between ${request.timeWindow.startHour}:00 and ${request.timeWindow.endHour}:00.` +
+        // Prose for the model to interpret. It is never treated as an id.
+        (clarified ? `\nAsked: ${clarified.question}\nAnswered: ${clarified.answer}` : ''),
     },
   ]
 
