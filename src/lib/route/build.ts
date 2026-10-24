@@ -213,7 +213,11 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
   // A route that could not honour a stated need is not a confident route,
   // whatever the taste match looks like.
   const requirementDropped = input.intentEcho.ignored.some((i) => i.label === 'Must-haves')
-  const confidence = requirementDropped ? 'weak' : assessment.confidence
+  // Sample data cannot honour anything the person stated, so any reported
+  // drop on that path is enough to make the route not a confident one.
+  const sampleDataDropped =
+    input.providerKind === 'fixture' && input.intentEcho.ignored.length > 0
+  const confidence = requirementDropped || sampleDataDropped ? 'weak' : assessment.confidence
 
   const narrative = buildNarrative(stops, input.request.timeWindow)
 

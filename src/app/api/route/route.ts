@@ -9,6 +9,7 @@ import { QlooProvider } from '@/lib/providers/qloo'
 import { parseRouteBody } from '@/lib/route/request-body'
 import { constraintsFromIntent } from '@/lib/intent/qloo-params'
 import { mergeEcho } from '@/lib/intent/echo'
+import { degradedEcho } from '@/lib/intent/degraded'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -57,12 +58,15 @@ export async function POST(req: Request) {
       seedNames: {},
       trace: [],
       providerKind: 'fixture',
-      intentEcho: { applied: [], ignored: [] },
+      // Sample data honours none of this, and says so.
+      intentEcho: degradedEcho(applied),
     })
     if ('error' in built) return NextResponse.json({ error: built.reason }, { status: 422 })
     return NextResponse.json({
       route: built,
-      ...(budgetLeft ? {} : { notice: 'Daily planning limit reached. Showing a sample route.' }),
+      notice: budgetLeft
+        ? 'Showing a sample route: the planner is not configured here.'
+        : 'Daily planning limit reached. Showing a sample route.',
     })
   }
 

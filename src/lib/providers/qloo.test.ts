@@ -455,3 +455,48 @@ describe('the images array varies in shape', () => {
     expect(candidates[0].media?.imageUrls).toBeUndefined()
   })
 })
+
+describe('several required tags must ALL hold', () => {
+  it('asks Qloo to intersect rather than union when there are two requirements', async () => {
+    const urls: string[] = []
+    const fetchImpl = async (url: string | URL | Request) => {
+      urls.push(String(url))
+      return ok({ success: true, results: { entities: [] } })
+    }
+    await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({
+      locality: 'Abuja',
+      constraints: {
+        requiredTags: [
+          'urn:tag:dietary_option:qloo:halal',
+          'urn:tag:accessibility:place:wheelchair_accessible_entrance',
+        ],
+      },
+    })
+    // Verified live: without this, Qloo unions the tags and returns places
+    // carrying neither — a supermarket for somebody who asked for halal.
+    expect(urls[0]).toContain('operator.filter.tags=intersection')
+  })
+
+  it('still intersects for a single requirement, which is harmless and consistent', async () => {
+    const urls: string[] = []
+    const fetchImpl = async (url: string | URL | Request) => {
+      urls.push(String(url))
+      return ok({ success: true, results: { entities: [] } })
+    }
+    await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({
+      locality: 'Abuja',
+      constraints: { requiredTags: ['urn:tag:dietary_option:qloo:halal'] },
+    })
+    expect(urls[0]).toContain('operator.filter.tags=intersection')
+  })
+
+  it('sends no tag operator when there are no requirements', async () => {
+    const urls: string[] = []
+    const fetchImpl = async (url: string | URL | Request) => {
+      urls.push(String(url))
+      return ok({ success: true, results: { entities: [] } })
+    }
+    await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({ locality: 'Abuja' })
+    expect(urls[0]).not.toContain('operator.filter.tags')
+  })
+})

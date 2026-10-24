@@ -191,21 +191,19 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
   }
 
   // The model may stop early, run out of rounds, or skip the search entirely
-  // and go straight to finalize. Rescue all three rather than returning nothing.
+  // and go straight to finalize. Rescue all three rather than returning
+  // nothing.
   if (!session.finalRoute) {
     if (session.pool.length === 0) {
       try {
-        // Untagged on purpose. The pool is empty, which means the tagged
-        // searches returned nothing — retrying them would fail the same way.
+        // Untagged on purpose. An empty pool means the tagged searches
+        // returned nothing, so retrying them would fail the same way.
         await session.dispatch('suggest_places', {})
       } catch (e) {
         if (e instanceof UnknownLocalityError) {
           return { error: e.message, trace: session.trace }
         }
-        // Report it rather than swallowing it: a silent failure here looks
-        // identical to the model simply not searching. The detail goes to the
-        // server log, never to the person reading the page.
-        console.error('backfill search failed', (e as Error).message)
+        console.error('rescue search failed', (e as Error).message)
         return {
           error: `Qloo could not be reached for ${locality.name}. Try again in a moment.`,
           trace: session.trace,
@@ -213,21 +211,42 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
       }
     }
 
-    const forced = (await session.dispatch('finalize_route', {})) as {
+    let outcome = (await session.dispatch('finalize_route', {})) as {
       ok?: boolean
       reason?: string
       unfilledSlots?: SlotName[]
     }
-    if (forced.ok === false && forced.reason) lastFinalizeFailure = forced.reason
+    if (outcome.ok === false && outcome.reason) lastFinalizeFailure = outcome.reason
 
-    // Constraints can intersect to nothing. Give one up at a time, softest
-    // first, and record each so the person is told rather than left guessing.
+    // Order matters here. A finalize can fail for slot coverage while the
+    // pool is perfectly good — thirty halal restaurants and no cafe — and
+    // giving up the dietary requirement would not have helped. So cover the
+    // slots first, searching for each missing kind WITH the constraints
+    // applied.
+    if (!session.finalRoute && outcome.unfilledSlots?.length) {
+      try {
+        await session.backfillSlots(outcome.unfilledSlots)
+      } catch (e) {
+        if (e instanceof UnknownLocalityError) {
+          return { error: e.message, trace: session.trace }
+        }
+      }
+      outcome = (await session.dispatch('finalize_route', {})) as typeof outcome
+      if (outcome.ok === false && outcome.reason) lastFinalizeFailure = outcome.reason
+    }
+
+    // Only now. Backfill has looked for every missing kind with the
+    // constraints applied and still come up short, so a constraint really is
+    // the reason. Give one up at a time, softest first, and record each so
+    // the person is told rather than left guessing.
     while (!session.finalRoute) {
       const relaxed = relaxOnce(constraints)
       if (!relaxed) break
       ignored.push({
         label: RELAX_LABELS[relaxed.dropped] ?? String(relaxed.dropped),
-        reason: 'nothing matched with this applied, so it was relaxed',
+        reason: relaxed.droppedDetail
+          ? `nothing matched with ${relaxed.droppedDetail} applied, so it was relaxed`
+          : 'nothing matched with this applied, so it was relaxed',
       })
       constraints = relaxed.next
       session.setConstraints(constraints)
@@ -235,35 +254,16 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
         await session.dispatch('suggest_places', {
           tagIds: session.requestedTagIds.slice(0, 5),
         })
+        if (!session.finalRoute && outcome.unfilledSlots?.length) {
+          await session.backfillSlots(outcome.unfilledSlots)
+        }
       } catch (e) {
         if (e instanceof UnknownLocalityError) {
           return { error: e.message, trace: session.trace }
         }
       }
-      const retried = (await session.dispatch('finalize_route', {})) as {
-        ok?: boolean
-        reason?: string
-      }
-      if (retried.ok === false && retried.reason) lastFinalizeFailure = retried.reason
-    }
-
-    // A three-stop route needs one venue of each kind. The model searches on
-    // taste and can easily come back with, say, only bars. Cover the gap with
-    // canonical queries and try once more.
-    if (!session.finalRoute && forced.unfilledSlots?.length) {
-      try {
-        await session.backfillSlots(forced.unfilledSlots)
-      } catch (e) {
-        if (e instanceof UnknownLocalityError) {
-          return { error: e.message, trace: session.trace }
-        }
-      }
-
-      const retried = (await session.dispatch('finalize_route', {})) as {
-        ok?: boolean
-        reason?: string
-      }
-      if (retried.ok === false && retried.reason) lastFinalizeFailure = retried.reason
+      outcome = (await session.dispatch('finalize_route', {})) as typeof outcome
+      if (outcome.ok === false && outcome.reason) lastFinalizeFailure = outcome.reason
     }
   }
 

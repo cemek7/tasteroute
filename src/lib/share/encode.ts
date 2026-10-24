@@ -186,7 +186,18 @@ export function listSavedRoutes(): Route[] {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? (parsed as Route[]) : []
+    if (!Array.isArray(parsed)) return []
+
+    // Every row goes through the same schema a share link does. This used to
+    // be a bare cast, and the storage key never changed, so a route saved
+    // before `intentEcho`, `narrative` and `alternativesBySlot` existed came
+    // back missing fields the UI reads — and blanked the page on open. The
+    // schema's defaults repair what they can; anything else is dropped.
+    return parsed.flatMap((row) => {
+      const checked = routeShape.safeParse(row)
+      if (!checked.success) return []
+      return [{ ...checked.data, trace: [] } as Route]
+    })
   } catch {
     return []
   }

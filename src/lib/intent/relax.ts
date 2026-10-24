@@ -27,12 +27,44 @@ export function relaxOrder(constraints: HardConstraints): (keyof HardConstraints
   return ORDER.filter((k) => constraints[k] !== undefined)
 }
 
-export function relaxOnce(
-  constraints: HardConstraints,
-): { next: HardConstraints; dropped: keyof HardConstraints } | null {
+/**
+ * Dietary needs are kept longest. Within a requirement set, an accessibility
+ * tag is given up before a dietary one — not because it matters less, but
+ * because Qloo tags accessibility sparsely, so it is the likelier reason the
+ * intersection came back empty.
+ */
+function requirementGiveUpOrder(tags: string[]): string[] {
+  const rank = (t: string) => (t.includes(':accessibility:') ? 0 : 1)
+  return [...tags].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
+}
+
+export function relaxOnce(constraints: HardConstraints): {
+  next: HardConstraints
+  dropped: keyof HardConstraints
+  droppedDetail?: string
+} | null {
   const dropped = relaxOrder(constraints)[0]
   if (!dropped) return null
+
   const next = { ...constraints }
+
+  // A requirement set is given up one tag at a time. Dropping halal AND a
+  // wheelchair entrance together, because their intersection was empty,
+  // discards a need that might well have been satisfiable on its own.
+  if (dropped === 'requiredTags' && constraints.requiredTags) {
+    const [first, ...rest] = requirementGiveUpOrder(constraints.requiredTags)
+    if (rest.length > 0) {
+      next.requiredTags = rest
+    } else {
+      delete next.requiredTags
+    }
+    return {
+      next,
+      dropped,
+      droppedDetail: first?.split(':').at(-1)?.replace(/_/g, ' '),
+    }
+  }
+
   delete next[dropped]
   return { next, dropped }
 }

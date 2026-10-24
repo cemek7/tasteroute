@@ -35,7 +35,7 @@ describe('mergeEcho', () => {
     expect(echo.ignored).toHaveLength(2)
   })
 
-  it('does not repeat a label that was relaxed twice', () => {
+  it('does not repeat an identical line', () => {
     const echo = mergeEcho(
       [],
       [
@@ -44,6 +44,20 @@ describe('mergeEcho', () => {
       ],
     )
     expect(echo.ignored).toHaveLength(1)
+  })
+
+  it('keeps both lines when two different requirements were given up', () => {
+    // Collapsing these hid the fact that a dietary need went too, which is
+    // the one thing a person most needs to know.
+    const echo = mergeEcho(
+      [],
+      [
+        { label: 'Must-haves', reason: 'nothing matched with wheelchair entrance applied' },
+        { label: 'Must-haves', reason: 'nothing matched with halal applied' },
+      ],
+    )
+    expect(echo.ignored).toHaveLength(2)
+    expect(echo.ignored.map((i) => i.reason).join(' ')).toContain('halal')
   })
 })
 

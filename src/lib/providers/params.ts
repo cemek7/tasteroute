@@ -17,6 +17,7 @@ const ALLOWED_INSIGHTS_PARAMS = new Set([
   'signal.interests.tags',
   'signal.interests.entities',
   'operator.signal.interests.tags',
+  'operator.filter.tags',
   'feature.explainability',
   'take',
   'page',

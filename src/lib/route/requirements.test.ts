@@ -59,9 +59,12 @@ describe('a dropped requirement is reported and lowers confidence', () => {
     expect(r.confidence).toBe('weak')
   })
 
-  it('leaves confidence alone when only a soft constraint was relaxed', () => {
+  it('leaves confidence alone when only a soft constraint was relaxed on live data', () => {
     const r = buildRoute(
       input({
+        // Deliberately the live path. On sample data nothing stated was
+        // honoured, so any drop there is weak by definition.
+        providerKind: 'qloo',
         intentEcho: {
           applied: [],
           ignored: [{ label: 'Hidden gems', reason: 'nothing matched' }],
@@ -80,5 +83,27 @@ describe('a dropped requirement is reported and lowers confidence', () => {
     const r = buildRoute(input({ intentEcho: echo }))
     if ('error' in r) throw new Error('expected a route')
     expect(r.intentEcho).toEqual(echo)
+  })
+})
+
+describe('sample data is never a confident route when something was stated', () => {
+  it('goes weak for any dropped constraint on the fixture path', () => {
+    const r = buildRoute(
+      input({
+        providerKind: 'fixture',
+        intentEcho: {
+          applied: [],
+          ignored: [{ label: 'Hidden gems', reason: 'sample data cannot honour it' }],
+        },
+      }),
+    )
+    if ('error' in r) throw new Error('expected a route')
+    expect(r.confidence).toBe('weak')
+  })
+
+  it('stays confident on the fixture path when nothing was stated', () => {
+    const r = buildRoute(input({ providerKind: 'fixture' }))
+    if ('error' in r) throw new Error('expected a route')
+    expect(r.confidence).not.toBe('weak')
   })
 })

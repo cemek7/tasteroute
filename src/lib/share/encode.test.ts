@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { FIXTURE_CANDIDATES } from '../providers/fixture'
 import { buildRoute } from '../route/build'
 import { decodeRoute, encodeRoute } from './encode'
@@ -150,5 +150,73 @@ describe('a well-formed but wrong-typed payload is rejected, not passed through'
         expect(typeof stop.walkFromPrev.minutes).toBe('number')
       }
     }
+  })
+})
+
+describe('saved routes are validated like any other stored blob', () => {
+  const memoryStorage = () => {
+    const map = new Map<string, string>()
+    return {
+      getItem: (k: string) => map.get(k) ?? null,
+      setItem: (k: string, v: string) => void map.set(k, v),
+      removeItem: (k: string) => void map.delete(k),
+    }
+  }
+
+  it('round-trips a route saved by this version', async () => {
+    const { listSavedRoutes, saveRoute } = await import('./encode')
+    vi.stubGlobal('localStorage', memoryStorage())
+    saveRoute(route())
+    expect(listSavedRoutes()).toHaveLength(1)
+  })
+
+  it('discards a route saved before intentEcho and narrative existed', async () => {
+    const { listSavedRoutes } = await import('./encode')
+    vi.stubGlobal('localStorage', memoryStorage())
+    // Exactly the shape the previous version wrote: the storage key is
+    // unchanged, so a returning person has one of these.
+    const old = JSON.parse(JSON.stringify(route())) as Record<string, unknown>
+    delete old.intentEcho
+    delete old.narrative
+    delete old.narrativeWindow
+    delete old.alternativesBySlot
+    localStorage.setItem('tasteroute.saved.v1', JSON.stringify([old]))
+
+    const back = listSavedRoutes()
+    // Either repaired with defaults or dropped — but never handed to the UI
+    // with the fields it reads missing.
+    for (const r of back) {
+      expect(r.intentEcho).toBeDefined()
+      expect(r.narrative).toBeDefined()
+      expect(r.alternativesBySlot).toBeDefined()
+    }
+  })
+
+  it('drops a hand-edited row rather than loading it', async () => {
+    const { listSavedRoutes } = await import('./encode')
+    vi.stubGlobal('localStorage', memoryStorage())
+    localStorage.setItem('tasteroute.saved.v1', JSON.stringify([{ id: 'nonsense' }, 42, null]))
+    expect(listSavedRoutes()).toEqual([])
+  })
+
+  it('keeps the good rows and drops the bad ones', async () => {
+    const { listSavedRoutes, saveRoute } = await import('./encode')
+    vi.stubGlobal('localStorage', memoryStorage())
+    saveRoute(route())
+    const stored = JSON.parse(localStorage.getItem('tasteroute.saved.v1')!)
+    localStorage.setItem('tasteroute.saved.v1', JSON.stringify([{ bad: true }, ...stored]))
+    expect(listSavedRoutes()).toHaveLength(1)
+  })
+
+  it('returns empty rather than throwing when storage is blocked', async () => {
+    const { listSavedRoutes } = await import('./encode')
+    vi.stubGlobal('localStorage', {
+      getItem: () => {
+        throw new Error('blocked')
+      },
+      setItem: () => {},
+      removeItem: () => {},
+    })
+    expect(listSavedRoutes()).toEqual([])
   })
 })

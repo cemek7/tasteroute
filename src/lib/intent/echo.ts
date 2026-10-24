@@ -13,9 +13,13 @@ export function mergeEcho(
   const seen = new Set<string>()
   return {
     applied: applied.filter((a) => !relaxed.has(a.label)),
+    // Deduped on label AND reason. Deduping on the label alone collapsed two
+    // separate requirement drops into one line, which hid from somebody that
+    // their dietary need had gone as well as their accessibility one.
     ignored: ignored.filter((i) => {
-      if (seen.has(i.label)) return false
-      seen.add(i.label)
+      const key = `${i.label}\u0000${i.reason}`
+      if (seen.has(key)) return false
+      seen.add(key)
       return true
     }),
   }

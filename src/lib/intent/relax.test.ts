@@ -58,3 +58,46 @@ describe('cityCentre', () => {
     expect(await cityCentre(blind, 'Nowhere')).toBeNull()
   })
 })
+
+describe('requirements are given up one at a time', () => {
+  it('drops a single required tag rather than the whole set', () => {
+    const r = relaxOnce({
+      requiredTags: [
+        'urn:tag:dietary_option:qloo:halal',
+        'urn:tag:accessibility:place:wheelchair_accessible_entrance',
+      ],
+    })
+    expect(r?.dropped).toBe('requiredTags')
+    // The accessibility need goes first, the dietary one is kept longest.
+    expect(r?.next.requiredTags).toEqual(['urn:tag:dietary_option:qloo:halal'])
+  })
+
+  it('removes the key entirely only once the last tag goes', () => {
+    const r = relaxOnce({ requiredTags: ['urn:tag:dietary_option:qloo:halal'] })
+    expect(r?.next.requiredTags).toBeUndefined()
+  })
+
+  it('keeps giving up one tag per call until none remain', () => {
+    let c = {
+      requiredTags: ['urn:tag:a', 'urn:tag:b', 'urn:tag:c'],
+    } as Parameters<typeof relaxOnce>[0]
+    const sizes: (number | undefined)[] = []
+    for (let i = 0; i < 4; i++) {
+      const r = relaxOnce(c)
+      if (!r) break
+      c = r.next
+      sizes.push(c.requiredTags?.length)
+    }
+    expect(sizes).toEqual([2, 1, undefined])
+  })
+
+  it('names which requirement was given up', () => {
+    const r = relaxOnce({
+      requiredTags: [
+        'urn:tag:dietary_option:qloo:halal',
+        'urn:tag:accessibility:place:wheelchair_accessible_entrance',
+      ],
+    })
+    expect(r?.droppedDetail).toContain('wheelchair')
+  })
+})

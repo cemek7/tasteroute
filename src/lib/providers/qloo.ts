@@ -111,6 +111,10 @@ export class QlooProvider implements TasteProvider {
       'filter.popularity.max': c.popularityMax,
       'filter.price_level.max': c.priceLevelMax,
       'filter.tags': c.requiredTags?.length ? c.requiredTags.join(',') : undefined,
+      // Qloo UNIONS filter.tags by default. Measured live: halal plus a
+      // wheelchair entrance returned a supermarket and a curtain shop
+      // carrying neither. A requirement that ORs is not a requirement.
+      'operator.filter.tags': c.requiredTags?.length ? 'intersection' : undefined,
       'filter.exclude.tags': c.excludeTags?.length ? c.excludeTags.join(',') : undefined,
       'signal.demographics.age': c.demographics?.ageBand,
       'signal.demographics.gender': c.demographics?.gender,

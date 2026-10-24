@@ -450,3 +450,101 @@ describe('a dropped requirement lowers confidence on the real path', () => {
     expect(result.route.confidence).not.toBe('weak')
   })
 })
+
+describe('a slot-coverage failure is not a reason to drop a requirement', () => {
+  /** Honours requiredTags, but only ever returns restaurants. */
+  const restaurantsOnlyHalal = {
+    kind: 'qloo' as const,
+    async findTags(query: string) {
+      return query.includes('cafe') || query.includes('coffee')
+        ? [
+            {
+              id: 'urn:tag:genre:place:cafe',
+              name: 'Cafe',
+              type: 'urn:tag:genre:place',
+              popularity: 1,
+            },
+          ]
+        : query.includes('bar')
+          ? [
+              {
+                id: 'urn:tag:genre:place:cocktail_bar',
+                name: 'Cocktail Bar',
+                type: 'urn:tag:genre:place',
+                popularity: 1,
+              },
+            ]
+          : []
+    },
+    async seedEntities() {
+      return []
+    },
+    async suggestPlaces(q: {
+      tags?: { id: string }[]
+      constraints?: { requiredTags?: string[] }
+    }) {
+      const { FIXTURE_CANDIDATES } = await import('../providers/fixture')
+      // Every candidate conforms to the requirement; the pool is simply
+      // short of a cafe and a bar until something searches for them.
+      const asked = (q.tags ?? []).map((t) => t.id).join(' ')
+      const kinds = asked.includes('cafe')
+        ? ['cafe']
+        : asked.includes('bar')
+          ? ['cocktail_bar']
+          : ['restaurant']
+      return {
+        candidates: FIXTURE_CANDIDATES.filter((c) => kinds.includes(c.category ?? '')),
+        explainability: null,
+        warnings: [],
+      }
+    },
+  }
+
+  it('backfills the missing slots instead of giving up the requirement', async () => {
+    const result = await planRoute({
+      provider: restaurantsOnlyHalal,
+      request,
+      locality: { name: 'Abuja' },
+      client: scriptedClient([
+        { calls: [{ name: 'suggest_places', args: {} }] },
+        { calls: [{ name: 'finalize_route', args: {} }] },
+      ]),
+      maxRounds: 4,
+      constraints: { requiredTags: ['urn:tag:dietary_option:qloo:halal'] },
+    })
+    if ('error' in result) throw new Error(result.error)
+    expect(result.route.stops).toHaveLength(3)
+    // The pool was never empty with the requirement applied, so there was
+    // never a reason to drop it.
+    expect(result.ignored.map((i) => i.label)).not.toContain('Must-haves')
+    expect(result.route.confidence).not.toBe('weak')
+  })
+
+  it('still drops a requirement when the pool really is empty with it applied', async () => {
+    const nothingConforms = {
+      ...restaurantsOnlyHalal,
+      async suggestPlaces(q: { constraints?: { requiredTags?: string[] } }) {
+        const { FIXTURE_CANDIDATES } = await import('../providers/fixture')
+        return {
+          candidates: (q.constraints?.requiredTags ?? []).length > 0 ? [] : FIXTURE_CANDIDATES,
+          explainability: null,
+          warnings: [],
+        }
+      },
+    }
+    const result = await planRoute({
+      provider: nothingConforms,
+      request,
+      locality: { name: 'Abuja' },
+      client: scriptedClient([
+        { calls: [{ name: 'suggest_places', args: {} }] },
+        { calls: [{ name: 'finalize_route', args: {} }] },
+      ]),
+      maxRounds: 4,
+      constraints: { requiredTags: ['urn:tag:dietary_option:qloo:halal'] },
+    })
+    if ('error' in result) throw new Error(result.error)
+    expect(result.ignored.map((i) => i.label)).toContain('Must-haves')
+    expect(result.route.confidence).toBe('weak')
+  })
+})
