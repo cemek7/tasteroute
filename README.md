@@ -28,6 +28,47 @@ Remove Qloo and nothing works. Specifically:
   route says which part of the evening was thin and offers the other places it
   found.
 
+## What you can tell it
+
+City, mood and the hours are the only required inputs; a route comes back
+without touching anything else. A collapsed "Tune this" panel adds the rest,
+and whatever you set is echoed back above the route — including anything that
+could not be applied, and why.
+
+**Applied by our code, out of the agent's reach.** These are constraints, not
+leanings, so a better taste match can never outvote them:
+
+| You say | Qloo parameter |
+|---|---|
+| famous ↔ hidden gems | `filter.popularity.min` / `.max` |
+| a budget | `filter.price_level.max` |
+| stay within 1/3/10km | `filter.location=POINT()` + `filter.location.radius` |
+| halal, vegetarian, vegan, gluten-free, kosher | `filter.tags` |
+| step-free or wheelchair access | `filter.tags` |
+| things to avoid | `filter.exclude.tags` |
+
+**Interpreted by the agent, as weighted signals.** These are leanings, and the
+agent resolves each one by querying Qloo's tag vocabulary at runtime rather
+than from a table in this repo:
+
+| You say | Resolved to |
+|---|---|
+| a vibe: lively, quiet, intimate, upscale, casual, outdoor | `urn:tag:ambience:qloo:*` |
+| an occasion: first date, birthday, anniversary… | `urn:tag:event:place:*`, `urn:tag:good_for:qloo:*` |
+| who you are going with | `urn:tag:customer_identity:qloo:*`, `urn:tag:good_for:qloo:*` |
+| new to the city, a local, visiting | sets the hidden-gems default |
+| age and gender, if you want to | `signal.demographics.age` / `.gender` |
+| places you already like | `signal.interests.entities` — the only path that yields Qloo's own explainability |
+
+**When they cannot all hold.** Hidden gems plus a tight budget plus a 1km
+radius can intersect to nothing. Rather than refuse, TasteRoute gives up one
+at a time — area first, then the popularity band, then the budget, and a
+stated dietary or accessibility need last — and names each one it dropped. A
+route that could not honour a stated need reports weak confidence.
+
+Age and gender are never stored, never logged, and never echoed back. They are
+not kept in the browser either.
+
 ## How the agent is bounded
 
 The agent chooses which mood words to resolve, which tags to pursue, whether to
@@ -46,6 +87,11 @@ gets wrong:
 - the model searches on taste, which can return only bars, so unfilled slots
   are backfilled with canonical queries
 - the model is capped at six tool rounds, because the demo URL is public
+- before planning, a separate `/api/clarify` call lets the model ask **one**
+  question when the mood names no vibe, venue kind or occasion — "something
+  nice" gets asked, "quiet wine bar with small plates" does not. It always
+  offers choices, is always skippable, and every failure path answers "clear"
+  rather than standing between you and a route
 
 The planner trace is visible in the UI, so you can see every tool call it made
 and how long each took.
@@ -99,6 +145,24 @@ Recorded because the docs do not say it and each one cost a debugging round:
   codebase validates every outbound parameter name against an allowlist before
   the request is built.
 - `take` is capped at 50.
+- `properties.primary_genre` is one clean URN per place and a far better
+  classification than parsing the tag list. Slot assignment reads it.
+- The default answer for a city is its **most famous** places: Abuja comes
+  back at popularity 0.984–0.997. `filter.popularity.max=0.4` returns a set
+  with **zero overlap**. Hidden gems is one parameter away.
+- The obscure end of the catalogue is housing estates, car parks, pharmacies
+  and phone shops. Of 20 Abuja results below 0.5 popularity, three were places
+  you would go out to — so venue kinds are an allow-list, not a deny-list.
+- `properties.price_level` is present on about one place in five, so a budget
+  used as a hard filter discards most of a city. It relaxes rather than
+  emptying the pool.
+- `signal.demographics` genuinely changes results: the same Abuja restaurant
+  query returns Transcorp Hilton with no demographics, City Park for
+  `age=24_and_younger`, and 355 Steakhouse for `gender=female`.
+- `properties.images` arrives as objects carrying a url, and sometimes as bare
+  url strings.
+- `filter.location` accepts WKT `POINT(lng lat)`, and Qloo decodes a `+` and a
+  `%20` identically there.
 
 ## Deploying
 

@@ -1,14 +1,17 @@
 # TasteRoute status
 
-Last updated: 24 October 2026.
+Last updated: 24 October 2026 (richer intent shipped).
 
 ## Where it stands
 
 The whole product is built and tested: engine, Qloo adapter, agent loop, API,
-mobile UI, save and share. 193 unit tests pass, 5 live Qloo tests pass with a
-key, typecheck is clean, `next build` succeeds, and 8 browser checks pass at
-phone width. A fresh whole-branch review found two criticals; both are fixed
-with tests that failed first.
+mobile UI, save and share — plus the richer intent work: a discovery slider,
+hard requirements, a clarifying question on its own endpoint, photo-and-rating
+stop cards, vibe/occasion/party/demographic signals, a narrative, stop
+swapping, and remembered preferences.
+
+333 unit tests pass, 5 live Qloo tests pass with a key, typecheck is clean,
+`next build` succeeds, and 16 browser checks pass at phone width.
 
 It has been run end to end against live Qloo and a live model many times and
 returns real routes with real evidence.
@@ -39,6 +42,22 @@ set -a && . ./.env.local && set +a && npx vitest run src/lib/providers/qloo.live
 curl -s -X POST localhost:3000/api/route -H 'content-type: application/json' \
   -d '{"city":"Abuja","mood":"cocktails and live music","startHour":18,"endHour":23}'
 ```
+
+## Decisions taken in the richer-intent work
+
+- **Requirements are not preferences.** Dietary needs, accessibility needs,
+  budget and area are hard Qloo filters applied by our code, out of the
+  agent's reach. Vibe, occasion, party and persona are weighted signals.
+- **A requirement that cannot be met is reported, never dropped quietly**, and
+  the route reports weak confidence.
+- **Venue kinds are an allow-list read from `primary_genre`.** The obscure end
+  of Qloo's catalogue is housing estates and pharmacies; a deny-list cannot
+  keep up.
+- **The clarifying question lives on `/api/clarify`**, so `/api/route` stays
+  single-phase with its contract and tests intact, and the feature can be
+  removed by deleting one handler and one component.
+- **Age and gender are never stored, logged, or echoed back** — not even in
+  the browser.
 
 ## Decisions taken
 

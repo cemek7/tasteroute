@@ -49,7 +49,10 @@ const qlooEntity = z.object({
       live_music: z.boolean().nullish(),
       primary_genre: z.object({ id: z.string() }).loose().nullish(),
       image: z.object({ url: z.string() }).loose().nullish(),
-      images: z.array(z.object({ url: z.string() }).loose()).nullish(),
+      // Seen as objects carrying a url, and as bare url strings. An entry we
+      // cannot use must not reject the whole response, so the element type
+      // is unknown and the adapter picks out what it recognises.
+      images: z.array(z.unknown()).nullish(),
       neighborhood: z.string().nullish(),
       neighborhood_description: z.string().nullish(),
       overall_description: z.string().nullish(),

@@ -406,3 +406,52 @@ describe('the richer fields Qloo already returns', () => {
     expect(candidates[0].detail?.about).toBeUndefined()
   })
 })
+
+describe('the images array varies in shape', () => {
+  it('accepts a bare string url alongside the object form', async () => {
+    const fetchImpl = async () =>
+      ok({
+        success: true,
+        results: {
+          entities: [
+            {
+              entity_id: 'a',
+              name: 'Mixed',
+              tags: [],
+              properties: {
+                images: [
+                  { url: 'https://images.qloo.com/i/one.jpg' },
+                  'https://images.qloo.com/i/two.jpg',
+                  { nourl: true },
+                ],
+              },
+            },
+          ],
+        },
+      })
+    const { candidates } = await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({
+      locality: 'Abuja',
+    })
+    expect(candidates[0].media?.imageUrls).toEqual([
+      'https://images.qloo.com/i/one.jpg',
+      'https://images.qloo.com/i/two.jpg',
+    ])
+  })
+
+  it('does not reject the whole response when an image entry is unusable', async () => {
+    const fetchImpl = async () =>
+      ok({
+        success: true,
+        results: {
+          entities: [
+            { entity_id: 'a', name: 'Odd', tags: [], properties: { images: [42, null] } },
+          ],
+        },
+      })
+    const { candidates } = await provider(fetchImpl as unknown as typeof fetch).suggestPlaces({
+      locality: 'Abuja',
+    })
+    expect(candidates).toHaveLength(1)
+    expect(candidates[0].media?.imageUrls).toBeUndefined()
+  })
+})

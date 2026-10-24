@@ -40,6 +40,39 @@ Remove Qloo and there is no product left.
   block, which is the strongest reason the app can show: "Qloo links this to
   the place you named."
 
+## What you can tell it
+
+City, mood and the hours are all that is required. A collapsed panel adds a
+famous-to-hidden-gems slider, a budget, how far you will walk, who you are
+going with, what the night is for, the vibe, dietary and accessibility needs,
+places you already like, and — optionally — your age and gender.
+
+The split that matters: **requirements are not preferences.** A dietary or
+accessibility need, a budget ceiling and an area limit become hard Qloo
+filters applied by our code, where no taste match can outvote them. Vibe,
+occasion and party become weighted signals the agent resolves by querying
+Qloo's tag vocabulary at runtime. When they cannot all hold, TasteRoute gives
+up one at a time — area first, a stated dietary need last — and tells you
+exactly what it dropped.
+
+The highest-value single control is the discovery slider. Qloo's default
+answer for a city is its most famous places; Abuja comes back at popularity
+0.984 and above, which is how early routes became a mall and a Domino's. Ask
+for hidden gems and you get a set with zero overlap. That one parameter is the
+difference between a tourist trap generator and the product.
+
+## Before it plans, it may ask you one question
+
+If the mood names no vibe, no venue kind and no occasion — "something nice",
+"fun", "surprise me" — the agent asks a single question with two to four
+concrete choices and a reason that says what it would change. "quiet wine bar
+with small plates" is never interrupted.
+
+That is the clearest demonstration of agency in the product: the model is not
+choosing stops, it is deciding whether the intent it has been given is
+sufficient to act on. It is always skippable, and every failure path proceeds
+to planning rather than blocking.
+
 ## The interesting design decision
 
 The hackathon asks for an agent. A product needs ordering you can defend. So

@@ -177,11 +177,7 @@ function toCandidate(e: QlooEntity, index: number): Candidate {
     providerRef: { provider: 'qloo', entityId: e.entity_id },
     media: {
       imageUrl: (p.image as { url?: string } | null | undefined)?.url ?? undefined,
-      imageUrls: Array.isArray(p.images)
-        ? (p.images as { url?: string }[])
-            .map((i) => i.url)
-            .filter((u): u is string => typeof u === 'string')
-        : undefined,
+      imageUrls: imageUrls(p.images),
     },
     detail: {
       neighborhood: p.neighborhood ?? undefined,
@@ -193,6 +189,18 @@ function toCandidate(e: QlooEntity, index: number): Candidate {
       website: p.website ?? undefined,
     },
   }
+}
+
+/**
+ * `images` arrives as objects carrying a url, and sometimes as bare strings.
+ * Anything we do not recognise is dropped rather than rendered.
+ */
+function imageUrls(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const urls = raw
+    .map((i) => (typeof i === 'string' ? i : (i as { url?: unknown } | null)?.url))
+    .filter((u): u is string => typeof u === 'string' && u.length > 0)
+  return urls.length > 0 ? urls : undefined
 }
 
 /** Qloo's prose fields are paragraphs; a card shows the first sentence. */
