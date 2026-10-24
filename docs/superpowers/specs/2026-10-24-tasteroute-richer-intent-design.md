@@ -564,17 +564,18 @@ Added by sections 7 to 11:
    query per request, taking the top result's `geocode` as the centre. One
    extra Qloo call; no new dependency. If that proves unreliable we fall back to
    `filter.location.query` and report radius as ignored.
-2. **Does `signal.demographics` change results?** Valid values were confirmed
-   accepted, but a differential test (same query, different age band) has not
-   been run. Task 1 of the plan runs it. If results are identical, the field is
-   decorative and must be removed rather than shipped as theatre.
+2. **Does `signal.demographics` change results? ANSWERED YES, 24 Oct.** A
+   differential against the same Abuja restaurant query returned a different
+   top four for every variant: no demographics gave Transcorp Hilton and Jabi
+   Lake Mall; `age=24_and_younger` gave City Park and Magic Land;
+   `gender=female` gave 355 Steakhouse and Retro Africa; `gender=male` gave
+   Fraser Suites and Grand Cubana. The signal is real, so the field ships.
 3. **`filter.tags` strictness.** It returned zero results in one probe. The
    dropped-requirement path exists because of that, but the exact behaviour
    with multiple required tags is untested.
-4. **Does Qloo's image CDN allow hotlinking?** The URLs are public and the
-   demo is public, so this should hold, but it is unverified. Task 1 fetches
-   one image and checks the status. If it 403s, the cards drop photos and keep
-   everything else.
+4. **Does Qloo's image CDN allow hotlinking? ANSWERED YES, 24 Oct.** A direct
+   fetch of an `images.qloo.com` URL returned 200, `image/jpeg`, 24,823 bytes,
+   both with and without a `Referer` header. Cards can show photos.
 5. **The clarifying question is now low-risk.** On its own endpoint it does
    not touch `/api/route` at all, so it can ship early and be removed by
    deleting one route handler and one component. It is also the strongest
@@ -600,8 +601,10 @@ Added by sections 7 to 11:
 
 ## 17. What would make this the wrong build
 
-- If `signal.demographics` turns out not to change results, asking people their
-  age and gender is an intrusion that buys nothing. Remove the field.
+- If `signal.demographics` had not changed results, asking people their age and
+  gender would have been an intrusion that bought nothing. It was measured on
+  24 Oct and does change them, so the field stands — but the moment it stops
+  earning its place it should go.
 - If hard `filter.tags` empties the pool for most real requirements, then
   requirements cannot be honoured through Qloo and the product should say so up
   front rather than offer checkboxes that rarely work.
