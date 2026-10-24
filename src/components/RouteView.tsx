@@ -58,6 +58,10 @@ export function RouteView({
         </p>
       )}
 
+      {route.narrative.line && (
+        <p className="mt-4 text-sm leading-relaxed">{route.narrative.line}</p>
+      )}
+
       <ol className="mt-4 space-y-3">
         {route.stops.map((s) => (
           <StopCard key={`${s.order}-${s.candidate.id}`} stop={s} />

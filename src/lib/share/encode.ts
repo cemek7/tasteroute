@@ -102,6 +102,13 @@ const routeShape = z.object({
       ignored: z.array(z.object({ label: z.string(), reason: z.string() })),
     })
     .default({ applied: [], ignored: [] }),
+  // Optional with defaults, so links made before the narrative existed decode.
+  narrative: z
+    .object({ line: z.string(), evidence: z.array(evidenceShape) })
+    .default({ line: '', evidence: [] }),
+  narrativeWindow: z
+    .object({ startHour: z.number(), endHour: z.number() })
+    .default({ startHour: 18, endHour: 23 }),
 })
 
 function toBase64Url(json: string): string {

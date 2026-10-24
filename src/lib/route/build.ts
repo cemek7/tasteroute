@@ -10,6 +10,7 @@ import type {
   TraceEntry,
 } from '../providers/types'
 import { assessSignal } from './assess'
+import { buildNarrative } from './narrative'
 import { isOpenDuring } from './open-tonight'
 import { orderStops } from './order'
 import { scoreCandidate, type ScoreContext } from './score'
@@ -214,6 +215,8 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
   const requirementDropped = input.intentEcho.ignored.some((i) => i.label === 'Must-haves')
   const confidence = requirementDropped ? 'weak' : assessment.confidence
 
+  const narrative = buildNarrative(stops, input.request.timeWindow)
+
   const alternatives =
     confidence === 'weak'
       ? pool.filter((c) => !takenIds.has(c.id)).slice(0, 6)
@@ -233,5 +236,7 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
     providerKind: input.providerKind,
     unfilledSlots: [],
     intentEcho: input.intentEcho,
+    narrative,
+    narrativeWindow: input.request.timeWindow,
   }
 }

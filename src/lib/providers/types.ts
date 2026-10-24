@@ -215,4 +215,8 @@ export type Route = {
   unfilledSlots: SlotName[]
   /** What the app understood from the intent, and what it could not apply. */
   intentEcho: IntentEcho
+  /** One sentence about the shape of the evening, composed from facts. */
+  narrative: { line: string; evidence: Evidence[] }
+  /** Kept so a swap can rebuild the narrative without the original request. */
+  narrativeWindow: { startHour: number; endHour: number }
 }
