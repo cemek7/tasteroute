@@ -49,6 +49,7 @@ describe('lodging is never an outing stop', () => {
       seedNames: {},
       trace: [],
       providerKind: 'fixture',
+      intentEcho: { applied: [], ignored: [] },
     } satisfies BuildInput)
     if ('error' in r) throw new Error('expected a route')
     expect(r.stops.some((s) => s.candidate.id === 'fx-hotel')).toBe(false)
@@ -106,6 +107,7 @@ describe('proximity keeps the stops walkable', () => {
       seedNames: {},
       trace: [],
       providerKind: 'fixture',
+      intentEcho: { applied: [], ignored: [] },
     })
     if ('error' in r) throw new Error('expected a route')
     for (const s of r.stops) {
@@ -230,6 +232,7 @@ describe('a route never asks for an unreasonable walk', () => {
       seedNames: {},
       trace: [],
       providerKind: 'qloo',
+      intentEcho: { applied: [], ignored: [] },
     })
     if ('error' in r) throw new Error('expected a route')
     expect(r.stops.map((s) => s.candidate.id)).toContain('near-bar')
@@ -256,6 +259,7 @@ describe('a route never asks for an unreasonable walk', () => {
       seedNames: {},
       trace: [],
       providerKind: 'qloo',
+      intentEcho: { applied: [], ignored: [] },
     })
     if ('error' in r) throw new Error('expected a route, not a refusal')
     expect(r.stops.map((s) => s.candidate.id)).toContain('far-bar')
@@ -340,6 +344,7 @@ describe('the anchor is chosen for the route, not for itself', () => {
       seedNames: {},
       trace: [],
       providerKind: 'qloo',
+      intentEcho: { applied: [], ignored: [] },
     })
     if ('error' in r) throw new Error('expected a route')
     expect(r.stops.map((s) => s.candidate.id)).toContain('cluster-restaurant')
@@ -369,6 +374,7 @@ describe('the anchor is chosen for the route, not for itself', () => {
       seedNames: {},
       trace: [],
       providerKind: 'qloo',
+      intentEcho: { applied: [], ignored: [] },
     })
     if ('error' in r) throw new Error('expected a route')
     expect(r.stops.map((s) => s.candidate.id)).toContain('remote-only')
@@ -390,6 +396,7 @@ describe('the anchor is chosen for the route, not for itself', () => {
       seedNames: {},
       trace: [],
       providerKind: 'qloo',
+      intentEcho: { applied: [], ignored: [] },
     }
     const a = buildRoute(input)
     const b = buildRoute(input)

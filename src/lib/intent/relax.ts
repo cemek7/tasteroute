@@ -1,3 +1,4 @@
+import { CONSTRAINT_LABELS } from './labels'
 import type { HardConstraints, TasteProvider } from '../providers/types'
 
 /**
@@ -19,13 +20,8 @@ const ORDER: (keyof HardConstraints)[] = [
   'requiredTags',
 ]
 
-export const RELAX_LABELS: Record<string, string> = {
-  radius: 'Nearby only',
-  popularityMax: 'Hidden gems',
-  popularityMin: 'The well-known ones',
-  priceLevelMax: 'Budget',
-  requiredTags: 'Must-haves',
-}
+/** Kept as a named re-export so existing callers do not have to change. */
+export const RELAX_LABELS = CONSTRAINT_LABELS
 
 export function relaxOrder(constraints: HardConstraints): (keyof HardConstraints)[] {
   return ORDER.filter((k) => constraints[k] !== undefined)

@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import type { Intent } from '@/lib/providers/types'
+import { DIETARY_IDS } from '@/lib/intent/vocabulary'
+import type { DietaryId, Intent } from '@/lib/providers/types'
 
 /**
  * Collapsed by default, and nothing in it is required. A judge who wants a
@@ -72,6 +73,41 @@ export function TunePanel({
                     }}
                   >
                     {'\u20a6'.repeat(b)}
+                  </button>
+                )
+              })}
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+              Must have
+            </legend>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {DIETARY_IDS.map((d: DietaryId) => {
+                const on = intent.requirements?.dietary?.includes(d) ?? false
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => {
+                      const current = intent.requirements?.dietary ?? []
+                      const next = on ? current.filter((x) => x !== d) : [...current, d]
+                      onChange({
+                        ...intent,
+                        requirements: {
+                          ...intent.requirements,
+                          dietary: next.length ? next : undefined,
+                        },
+                      })
+                    }}
+                    className="rounded-full border px-2.5 py-1 text-xs"
+                    style={{
+                      borderColor: on ? 'var(--accent)' : 'var(--border)',
+                      color: on ? 'var(--accent)' : 'var(--muted)',
+                    }}
+                  >
+                    {d.replace(/_/g, ' ')}
                   </button>
                 )
               })}

@@ -256,8 +256,19 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
     }
   }
 
+  // The session built the route before any relaxation was known, so the
+  // requirement downgrade has to be applied here. A route that could not
+  // honour a stated dietary or accessibility need is not a confident route,
+  // whatever the taste match looks like.
+  const requirementDropped = ignored.some((i) => i.label === RELAX_LABELS.requiredTags)
+
   return {
-    route: { ...route, trace: session.trace },
+    route: {
+      ...route,
+      trace: session.trace,
+      confidence: requirementDropped ? 'weak' : route.confidence,
+      intentEcho: { applied: route.intentEcho.applied, ignored },
+    },
     roundsUsed: budget.roundsUsed,
     ignored,
   }

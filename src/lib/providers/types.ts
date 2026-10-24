@@ -16,6 +16,16 @@ export type SlotName = 'open' | 'main' | 'close'
  * need: `constraintsFromIntent` for what our code enforces, and
  * `resolvePreferenceTags` for what the agent interprets.
  */
+export type {
+  AccessibilityId,
+  AgeBand,
+  DietaryId,
+  OccasionId,
+  PartyComposition,
+  Persona,
+  VibeId,
+}
+
 export type Intent = {
   vibe?: VibeId[]
   occasion?: OccasionId

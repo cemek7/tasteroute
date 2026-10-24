@@ -14,6 +14,7 @@ const route = (): Route => {
     seedNames: {},
     trace: [],
     providerKind: 'fixture',
+      intentEcho: { applied: [], ignored: [] },
   })
   if ('error' in r) throw new Error('fixture route should build')
   return r

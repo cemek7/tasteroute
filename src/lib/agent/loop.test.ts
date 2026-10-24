@@ -394,3 +394,59 @@ describe('conflicting intent relaxes rather than refusing', () => {
     expect(used.every((r) => r.lat !== 0)).toBe(true)
   })
 })
+
+describe('a dropped requirement lowers confidence on the real path', () => {
+  const halalOnly = {
+    kind: 'qloo' as const,
+    async findTags() {
+      return []
+    },
+    async seedEntities() {
+      return []
+    },
+    async suggestPlaces(q: { constraints?: { requiredTags?: string[] } }) {
+      const { FIXTURE_CANDIDATES } = await import('../providers/fixture')
+      // Nothing in this city carries the required tag.
+      const empty = (q.constraints?.requiredTags ?? []).length > 0
+      return {
+        candidates: empty ? [] : FIXTURE_CANDIDATES,
+        explainability: null,
+        warnings: [],
+      }
+    },
+  }
+
+  it('returns weak confidence when a must-have had to be relaxed', async () => {
+    const result = await planRoute({
+      provider: halalOnly,
+      request,
+      locality: { name: 'Abuja' },
+      client: scriptedClient([
+        { calls: [{ name: 'suggest_places', args: {} }] },
+        { calls: [{ name: 'finalize_route', args: {} }] },
+      ]),
+      maxRounds: 4,
+      constraints: { requiredTags: ['urn:tag:dietary_option:qloo:halal'] },
+    })
+    if ('error' in result) throw new Error(result.error)
+    expect(result.ignored.map((i) => i.label)).toContain('Must-haves')
+    expect(result.route.confidence).toBe('weak')
+  })
+
+  it('leaves confidence alone when only a soft constraint was relaxed', async () => {
+    const result = await planRoute({
+      provider: new FixtureProvider(),
+      request,
+      locality: { name: 'Lagos' },
+      client: scriptedClient([
+        { calls: [{ name: 'suggest_places', args: {} }] },
+        { calls: [{ name: 'finalize_route', args: {} }] },
+      ]),
+      maxRounds: 4,
+      constraints: { popularityMax: 0.01 },
+    })
+    if ('error' in result) throw new Error(result.error)
+    expect(result.ignored.map((i) => i.label)).toContain('Hidden gems')
+    expect(result.route.confidence).not.toBe('weak')
+  })
+})

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { Route } from '@/lib/providers/types'
 import { encodeRoute, saveRoute } from '@/lib/share/encode'
+import { IntentEchoPanel } from './IntentEchoPanel'
 import { ProviderBanner } from './ProviderBanner'
 import { StopCard } from './StopCard'
 import { TracePanel } from './TracePanel'
@@ -46,6 +47,7 @@ export function RouteView({
   return (
     <section className="mt-8">
       <ProviderBanner kind={route.providerKind} />
+      <IntentEchoPanel echo={route.intentEcho} />
 
       {note && (
         <p

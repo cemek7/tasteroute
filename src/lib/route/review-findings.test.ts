@@ -31,6 +31,7 @@ const input = (candidates: Candidate[]): BuildInput => ({
   seedNames: {},
   trace: [],
   providerKind: 'qloo',
+      intentEcho: { applied: [], ignored: [] },
 })
 
 describe('a substring must not decide a venue kind', () => {

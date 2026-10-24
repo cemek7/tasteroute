@@ -1,3 +1,5 @@
+import { CONSTRAINT_LABELS } from './labels'
+import { ACCESSIBILITY_TAGS, DIETARY_TAGS } from './vocabulary'
 import type { HardConstraints, Intent, IntentEcho } from '../providers/types'
 
 const FAMOUS_FLOOR = 0.8
@@ -33,13 +35,13 @@ export function constraintsFromIntent(intent: Intent): {
     if (discovery < 1 / 3) {
       constraints.popularityMin = FAMOUS_FLOOR
       applied.push({
-        label: 'The well-known ones',
+        label: CONSTRAINT_LABELS.popularityMin,
         detail: `only places Qloo rates above ${FAMOUS_FLOOR} for popularity`,
       })
     } else if (discovery > 2 / 3) {
       constraints.popularityMax = HIDDEN_CEILING
       applied.push({
-        label: 'Hidden gems',
+        label: CONSTRAINT_LABELS.popularityMax,
         detail: `only places Qloo rates below ${HIDDEN_CEILING} for popularity`,
       })
     }
@@ -48,7 +50,7 @@ export function constraintsFromIntent(intent: Intent): {
   if (intent.budget !== undefined && intent.budget < 4) {
     constraints.priceLevelMax = intent.budget
     applied.push({
-      label: 'Budget',
+      label: CONSTRAINT_LABELS.priceLevelMax,
       detail: `nothing above price level ${intent.budget} of 4`,
     })
   }
@@ -59,9 +61,31 @@ export function constraintsFromIntent(intent: Intent): {
     // the Gulf of Guinea, so a leak would be obvious rather than subtle.
     constraints.radius = { lat: 0, lng: 0, metres: intent.area.radiusMetres }
     applied.push({
-      label: 'Nearby only',
+      label: CONSTRAINT_LABELS.radius,
       detail: `within ${(intent.area.radiusMetres / 1000).toFixed(1)}km of the centre`,
     })
+  }
+
+  // Dietary and accessibility needs are not taste. Somebody who needs a
+  // wheelchair-accessible entrance and gets a venue without one has been
+  // failed, however good the cocktails are — so these are hard filters the
+  // agent cannot weigh against anything.
+  const requiredTags = [
+    ...(intent.requirements?.dietary ?? []).map((d) => DIETARY_TAGS[d]),
+    ...(intent.requirements?.accessibility ?? []).map((a) => ACCESSIBILITY_TAGS[a]),
+  ]
+  if (requiredTags.length > 0) {
+    constraints.requiredTags = requiredTags
+    const names = [
+      ...(intent.requirements?.dietary ?? []),
+      ...(intent.requirements?.accessibility ?? []),
+    ].map((n) => n.replace(/_/g, ' '))
+    applied.push({ label: CONSTRAINT_LABELS.requiredTags, detail: names.join(', ') })
+  }
+
+  if (intent.avoid?.length) {
+    constraints.excludeTags = intent.avoid
+    applied.push({ label: CONSTRAINT_LABELS.excludeTags, detail: intent.avoid.join(', ') })
   }
 
   return { constraints, applied }

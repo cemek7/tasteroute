@@ -16,6 +16,7 @@ const input = (over: Partial<BuildInput> = {}): BuildInput => ({
   seedNames: {},
   trace: [],
   providerKind: 'fixture',
+      intentEcho: { applied: [], ignored: [] },
   ...over,
 })
 

@@ -57,6 +57,7 @@ export async function POST(req: Request) {
       seedNames: {},
       trace: [],
       providerKind: 'fixture',
+      intentEcho: { applied: [], ignored: [] },
     })
     if ('error' in built) return NextResponse.json({ error: built.reason }, { status: 422 })
     return NextResponse.json({

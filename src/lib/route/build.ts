@@ -1,5 +1,6 @@
 import type {
   Candidate,
+  IntentEcho,
   Locality,
   ProviderExplainability,
   Route,
@@ -23,6 +24,7 @@ export type BuildInput = {
   seedNames: Record<string, string>
   trace: TraceEntry[]
   providerKind: 'qloo' | 'fixture'
+  intentEcho: IntentEcho
 }
 
 export type BuildFailure = {
@@ -197,8 +199,13 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
     } satisfies Stop
   }) as [Stop, Stop, Stop]
 
+  // A route that could not honour a stated need is not a confident route,
+  // whatever the taste match looks like.
+  const requirementDropped = input.intentEcho.ignored.some((i) => i.label === 'Must-haves')
+  const confidence = requirementDropped ? 'weak' : assessment.confidence
+
   const alternatives =
-    assessment.confidence === 'weak'
+    confidence === 'weak'
       ? pool.filter((c) => !takenIds.has(c.id)).slice(0, 6)
       : []
 
@@ -210,11 +217,11 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
     mood: input.request.mood,
     createdAt: new Date().toISOString(),
     stops,
-    confidence: assessment.confidence,
+    confidence,
     alternatives,
     trace: input.trace,
     providerKind: input.providerKind,
     unfilledSlots: [],
-    intentEcho: { applied: [], ignored: [] },
+    intentEcho: input.intentEcho,
   }
 }

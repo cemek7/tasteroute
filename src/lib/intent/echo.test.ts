@@ -46,3 +46,40 @@ describe('mergeEcho', () => {
     expect(echo.ignored).toHaveLength(1)
   })
 })
+
+describe('the two halves of the system use the same labels', () => {
+  it('matches every applied label against the relaxation labels', async () => {
+    const { constraintsFromIntent } = await import('./qloo-params')
+    const { RELAX_LABELS } = await import('./relax')
+
+    // Every constraint that can be relaxed must label itself identically in
+    // both places, or mergeEcho cannot tell they are the same thing and the
+    // echo reports a constraint as applied and relaxed at once.
+    type ConstraintKey = keyof typeof RELAX_LABELS
+    const cases: {
+      intent: Parameters<typeof constraintsFromIntent>[0]
+      key: ConstraintKey
+    }[] = [
+      { intent: { discovery: 0.9 }, key: 'popularityMax' },
+      { intent: { discovery: 0.1 }, key: 'popularityMin' },
+      { intent: { budget: 2 }, key: 'priceLevelMax' },
+      { intent: { area: { radiusMetres: 1000 } }, key: 'radius' },
+      { intent: { requirements: { dietary: ['halal'] } }, key: 'requiredTags' },
+    ]
+
+    for (const { intent, key } of cases) {
+      const { applied } = constraintsFromIntent(intent)
+      expect(applied.map((a) => a.label), key).toContain(RELAX_LABELS[key])
+    }
+  })
+
+  it('removes a relaxed must-have from the applied list', async () => {
+    const { constraintsFromIntent } = await import('./qloo-params')
+    const { RELAX_LABELS } = await import('./relax')
+    const { applied } = constraintsFromIntent({ requirements: { dietary: ['halal'] } })
+    const echo = mergeEcho(applied, [
+      { label: RELAX_LABELS.requiredTags, reason: 'nothing matched' },
+    ])
+    expect(echo.applied).toEqual([])
+  })
+})

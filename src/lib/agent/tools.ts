@@ -232,6 +232,9 @@ export function createSession(opts: {
         seedNames,
         trace,
         providerKind: provider.kind,
+        // The session does not know what was relaxed; the loop merges the
+        // real echo onto the route when it returns.
+        intentEcho: { applied: [], ignored: [] },
       })
 
       if ('error' in built) {
