@@ -20,9 +20,7 @@ confidence. Public, no Vercel authentication wall.
 
 ## Blocking the submission
 
-1. **Repo is local only.** It must be public, with the licence visible in the
-   GitHub About section.
-2. **OpenRouter credit was $4.79** when measured on 23 Oct, and each route
+1. **OpenRouter credit was $4.79** when measured on 23 Oct, and each route
    costs roughly $0.006. Worth topping up before judging.
 
 ## Commands
@@ -71,6 +69,6 @@ invalid parameters are silently ignored rather than rejected.
 - [x] Deployed, with the five environment variables set on Vercel
 - [x] Live URL recorded in README.md and docs/submission.md
 - [ ] Paste the live URL into the Devpost form
-- [ ] Push to a public repo, licence visible in About
+- [x] Pushed to https://github.com/cemek7/tasteroute, public, MIT detected in About
 - [ ] Paste `docs/submission.md` into the Devpost description
 - [ ] Top up OpenRouter credit
