@@ -45,16 +45,40 @@ export function swapStop(route: Route, slot: SlotName, candidateId: string): Rou
     }
   }) as [Stop, Stop, Stop]
 
+  // The lists were filtered against the three stops that existed when the
+  // route was built. One swap makes that description stale, and a stale list
+  // is not merely untidy: a venue Qloo classifies as a restaurant can still
+  // call itself a lounge, so a second swap could put two lounges in one
+  // evening. Re-apply both invariants against the route as it now stands.
+  const byId = new Map(stops.map((st) => [st.candidate.id, st.slot]))
+  const alternativesBySlot = (['open', 'main', 'close'] as const).reduce(
+    (acc, s) => {
+      const offered =
+        s === slot
+          ? [current.candidate, ...route.alternativesBySlot[s]]
+          : route.alternativesBySlot[s]
+      const usedByOthers = stops
+        .filter((st) => st.slot !== s)
+        .map((st) => st.candidate.category)
+        .filter((c): c is string => !!c)
+      const seen = new Set<string>()
+      acc[s] = offered
+        .filter((c) => {
+          if (byId.has(c.id) || seen.has(c.id)) return false
+          if (usedByOthers.includes(c.category ?? '')) return false
+          seen.add(c.id)
+          return true
+        })
+        .slice(0, ALTERNATIVES_PER_SLOT)
+      return acc
+    },
+    { open: [], main: [], close: [] } as Record<SlotName, Candidate[]>,
+  )
+
   return {
     ...route,
     stops,
     narrative: buildNarrative(stops, route.narrativeWindow),
-    alternativesBySlot: {
-      ...route.alternativesBySlot,
-      [slot]: [
-        current.candidate,
-        ...route.alternativesBySlot[slot].filter((c) => c.id !== candidateId),
-      ].slice(0, ALTERNATIVES_PER_SLOT),
-    },
+    alternativesBySlot,
   }
 }

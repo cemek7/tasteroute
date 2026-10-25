@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { FIXTURE_CANDIDATES } from '../providers/fixture'
 import { buildRoute, type BuildInput } from './build'
 import { swapStop } from './swap'
-import type { Route, SlotName } from '../providers/types'
+import type { Candidate, Route, SlotName } from '../providers/types'
 
 const route = (): Route => {
   const r = buildRoute({
@@ -116,5 +116,152 @@ describe('swapStop', () => {
     const oldWhy = r.stops.find((s) => s.slot === slot)!.why
     const next = swapStop(r, slot, r.alternativesBySlot[slot][0].id)
     expect(next.stops.find((s) => s.slot === slot)?.why).not.toBe(oldWhy)
+  })
+})
+
+// Reviewer finding I5: the stops get `openTonight` injected at build time,
+// but the alternatives are raw pool candidates. A swap therefore dropped the
+// "closes before your window" warning off the card — the person swapped in a
+// place that shuts at 11 and the app went quiet about it.
+describe('alternatives carry the same opening-hours verdict as the stops', () => {
+  const morningOnly = {
+    monday: [{ opens: 'T09:00:00', closes: 'T11:00:00', closed: false }],
+  }
+  const withHours = () => FIXTURE_CANDIDATES.map((c) => ({ ...c, hours: morningOnly }))
+
+  const routeWithHours = (): Route => {
+    const r = buildRoute({
+      candidates: withHours(),
+      request: {
+        city: 'Lagos',
+        mood: 'anything',
+        timeWindow: { startHour: 18, endHour: 23 },
+        intent: {},
+      },
+      locality: { name: 'Lagos' },
+      requestedTagIds: [],
+      explainability: null,
+      seedNames: {},
+      trace: [],
+      providerKind: 'fixture',
+      intentEcho: { applied: [], ignored: [] },
+    } satisfies BuildInput)
+    if ('error' in r) throw new Error('expected a route')
+    return r
+  }
+
+  it('answers the open-during-your-window question for every alternative', () => {
+    const r = routeWithHours()
+    const all = Object.values(r.alternativesBySlot).flat()
+    expect(all.length).toBeGreaterThan(0)
+    for (const c of all) expect(c.detail?.openTonight).toBe(false)
+  })
+
+  it('keeps the warning on a stop that arrived by a swap', () => {
+    const r = routeWithHours()
+    const slot = slotWithOptions(r)
+    const next = swapStop(r, slot, r.alternativesBySlot[slot][0].id)
+    expect(next.stops.find((s) => s.slot === slot)?.candidate.detail?.openTonight).toBe(false)
+  })
+})
+
+// Reviewer finding I8: the alternatives were filtered against the categories
+// of the ORIGINAL three stops and never recomputed. One swap left the lists
+// describing a route that no longer existed, so a second swap could put two
+// lounges in the same evening.
+describe('the alternatives still describe the route after a swap', () => {
+  const mk = (
+    id: string,
+    category: string,
+    primaryGenre: string | null,
+    affinity: number,
+  ): Candidate => ({
+    id,
+    name: id,
+    category,
+    primaryGenre,
+    lat: 9.07,
+    lng: 7.49,
+    address: null,
+    affinity,
+    popularity: 0.4,
+    isClosed: false,
+    hours: null,
+    tags: [],
+    descriptors: {},
+    providerRank: 1,
+    providerRef: { provider: 'fixture', entityId: id },
+  })
+
+  /**
+   * `lounge-main` is the case that makes this reachable from live data: Qloo
+   * classified it as a restaurant, so it fills the main slot, but its own
+   * category still reads "lounge" — the same word as `lounge-close`.
+   */
+  const pool = (): Candidate[] => [
+    mk('cafe-1', 'cafe', 'urn:tag:genre:place:cafe', 0.9),
+    mk('cafe-2', 'cafe', 'urn:tag:genre:place:cafe', 0.5),
+    mk('rest-1', 'restaurant', 'urn:tag:genre:place:restaurant', 0.9),
+    mk('lounge-main', 'lounge', 'urn:tag:genre:place:restaurant', 0.6),
+    mk('bar-1', 'cocktail_bar', 'urn:tag:genre:place:cocktail_bar', 0.9),
+    mk('lounge-close', 'lounge', null, 0.6),
+  ]
+
+  const crafted = (): Route => {
+    const r = buildRoute({
+      candidates: pool(),
+      request: {
+        city: 'Abuja',
+        mood: 'anything',
+        timeWindow: { startHour: 18, endHour: 23 },
+        intent: {},
+      },
+      locality: { name: 'Abuja' },
+      requestedTagIds: [],
+      explainability: null,
+      seedNames: {},
+      trace: [],
+      providerKind: 'fixture',
+      intentEcho: { applied: [], ignored: [] },
+    } satisfies BuildInput)
+    if ('error' in r) throw new Error('expected a route')
+    return r
+  }
+
+  it('does not let two swaps put two of the same kind in one evening', () => {
+    const two = swapStop(swapStop(crafted(), 'close', 'lounge-close'), 'main', 'lounge-main')
+    const kinds = two.stops.map((s) => s.candidate.category)
+    expect(new Set(kinds).size).toBe(kinds.length)
+  })
+
+  it('stops offering a kind the swapped-in stop now holds', () => {
+    const one = swapStop(crafted(), 'close', 'lounge-close')
+    for (const slot of ['open', 'main', 'close'] as const) {
+      const others = one.stops.filter((s) => s.slot !== slot).map((s) => s.candidate.category)
+      for (const c of one.alternativesBySlot[slot]) expect(others).not.toContain(c.category)
+    }
+  })
+
+  it('offers nothing that is already a stop in the route', () => {
+    const one = swapStop(crafted(), 'close', 'lounge-close')
+    const inRoute = new Set(one.stops.map((s) => s.candidate.id))
+    for (const list of Object.values(one.alternativesBySlot)) {
+      for (const c of list) expect(inRoute.has(c.id)).toBe(false)
+    }
+  })
+
+  it('still offers the place that was swapped out', () => {
+    const one = swapStop(crafted(), 'close', 'lounge-close')
+    expect(one.alternativesBySlot.close.map((c) => c.id)).toContain('bar-1')
+  })
+
+  it('leaves the fixture route own invariants intact', () => {
+    const r = route()
+    const slot = slotWithOptions(r)
+    const next = swapStop(r, slot, r.alternativesBySlot[slot][0].id)
+    for (const s of ['open', 'main', 'close'] as const) {
+      const others = next.stops.filter((x) => x.slot !== s).map((x) => x.candidate.category)
+      for (const c of next.alternativesBySlot[s]) expect(others).not.toContain(c.category)
+    }
   })
 })

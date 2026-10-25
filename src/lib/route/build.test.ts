@@ -125,3 +125,91 @@ describe('buildRoute', () => {
     expect(r.stops.every((s) => s.why.length > 0)).toBe(true)
   })
 })
+
+// Reviewer finding I6: budget reached Qloo as `filter.price_level.max`, and
+// the relaxation path gives that filter up when it empties a slot. With no
+// price level on the candidate, nothing then stopped a place Qloo had told us
+// was ₦₦₦₦ from landing in a route somebody capped at ₦₦.
+describe('a stated budget is a ceiling our own code keeps', () => {
+  const priced = (
+    id: string,
+    category: string,
+    priceLevel: number | null,
+    affinity = 0.9,
+  ): Candidate => ({
+    id,
+    name: id,
+    category,
+    primaryGenre: `urn:tag:genre:place:${category}`,
+    lat: 9.07,
+    lng: 7.49,
+    address: null,
+    affinity,
+    popularity: 0.5,
+    priceLevel,
+    isClosed: false,
+    hours: null,
+    tags: [],
+    descriptors: {},
+    providerRank: 1,
+    providerRef: { provider: 'fixture', entityId: id },
+  })
+
+  const build = (candidates: Candidate[], budget?: 1 | 2 | 3 | 4) =>
+    buildRoute({
+      candidates,
+      request: {
+        city: 'Abuja',
+        mood: 'anything',
+        timeWindow: { startHour: 18, endHour: 23 },
+        intent: budget ? { budget } : {},
+      },
+      locality: { name: 'Abuja' },
+      requestedTagIds: [],
+      explainability: null,
+      seedNames: {},
+      trace: [],
+      providerKind: 'qloo',
+      // The filter was given up, which is exactly when this has to hold.
+      intentEcho: {
+        applied: [],
+        ignored: budget ? [{ label: 'Budget', reason: 'too few places publish a price level' }] : [],
+      },
+    } satisfies BuildInput)
+
+  // rest-expensive is the better taste match, so it wins the main slot unless
+  // something keeps it out. That is what each case below is testing.
+  const pool = (mainPrice: number | null): Candidate[] => [
+    priced('cafe-1', 'cafe', 1),
+    priced('rest-expensive', 'restaurant', mainPrice, 0.95),
+    priced('rest-cheap', 'restaurant', 2, 0.6),
+    priced('bar-1', 'cocktail_bar', 1),
+  ]
+
+  it('never places a stop Qloo told us exceeds the ceiling', () => {
+    const r = build(pool(4), 2)
+    if ('error' in r) throw new Error(r.reason)
+    expect(r.stops.map((s) => s.candidate.id)).not.toContain('rest-expensive')
+  })
+
+  it('keeps the places that publish no price level, since most do not', () => {
+    const r = build(pool(null), 2)
+    if ('error' in r) throw new Error(r.reason)
+    // Nothing is known to break the ceiling, so the best main stop stands.
+    expect(r.stops.map((s) => s.candidate.id)).toContain('rest-expensive')
+  })
+
+  it('leaves the route alone when no budget was stated', () => {
+    const r = build(pool(4))
+    if ('error' in r) throw new Error(r.reason)
+    expect(r.stops.map((s) => s.candidate.id)).toContain('rest-expensive')
+  })
+
+  it('does not offer an over-budget place as an alternative either', () => {
+    const r = build([...pool(4), priced('rest-dear-2', 'restaurant', 4, 0.94)], 2)
+    if ('error' in r) throw new Error(r.reason)
+    const offered = Object.values(r.alternativesBySlot).flat().map((c) => c.id)
+    expect(offered).not.toContain('rest-expensive')
+    expect(offered).not.toContain('rest-dear-2')
+  })
+})

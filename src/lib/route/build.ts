@@ -121,7 +121,20 @@ function totalWalk(chosen: Record<SlotName, Candidate>): number {
 
 export function buildRoute(input: BuildInput): Route | BuildFailure {
   const assessment = assessSignal(input.candidates)
-  const pool = input.candidates.filter((c) => c.isClosed !== true)
+  // A stated ceiling is a requirement, not a preference, so our own code holds
+  // it rather than trusting the Qloo filter to survive. It has to: four places
+  // in five publish no price level, so `filter.price_level.max` empties slots
+  // and the relaxation path gives it up — and the moment it does, nothing else
+  // was stopping a place Qloo had already told us was ₦₦₦₦.
+  //
+  // Unknown is unknown. A place with no published price level stays in, which
+  // is the half of this the ceiling cannot deliver, and the echo says so.
+  const budget = input.request.intent.budget
+  const pool = input.candidates.filter(
+    (c) =>
+      c.isClosed !== true &&
+      !(budget !== undefined && typeof c.priceLevel === 'number' && c.priceLevel > budget),
+  )
 
   // The highest-scoring restaurant can sit in a far suburb, which drags the
   // whole evening out there. Try the best few as the anchor and keep the route
@@ -189,17 +202,22 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
     seedNames: input.seedNames,
   }
 
+  // Derived from the same parser the score uses, so the card cannot disagree
+  // with the ranking. Every candidate the client can end up showing goes
+  // through this — a stop and an alternative alike, because an alternative
+  // becomes a stop the moment somebody swaps it in, and it carried no
+  // opening-hours verdict with it.
+  const withOpenTonight = (c: Candidate): Candidate => ({
+    ...c,
+    detail: {
+      ...c.detail,
+      openTonight: isOpenDuring(c.hours, input.request.timeWindow),
+    },
+  })
+
   const stops = ordered.map((o, i) => {
     const { why, evidence } = buildWhy(o.candidate, whyCtx)
-    // Derived from the same parser the score uses, so the card cannot
-    // disagree with the ranking.
-    const candidate: Candidate = {
-      ...o.candidate,
-      detail: {
-        ...o.candidate.detail,
-        openTonight: isOpenDuring(o.candidate.hours, input.request.timeWindow),
-      },
-    }
+    const candidate = withOpenTonight(o.candidate)
     return {
       order: (i + 1) as 1 | 2 | 3,
       slot: o.slot,
@@ -255,7 +273,7 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
         }))
         .sort((a, b) => b.score - a.score || a.c.id.localeCompare(b.c.id))
         .slice(0, ALTERNATIVES_PER_SLOT)
-        .map((e) => e.c)
+        .map((e) => withOpenTonight(e.c))
       return acc
     },
     { open: [], main: [], close: [] } as Record<SlotName, Candidate[]>,

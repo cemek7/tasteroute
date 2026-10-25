@@ -36,6 +36,8 @@ const qlooEntity = z.object({
       geocode: geocode.nullish(),
       hours: z.unknown().nullish(),
       business_rating: z.number().nullish(),
+      // 1 to 4. Present on about one place in five, so absent is normal.
+      price_level: z.number().nullish(),
       is_closed: z.boolean().nullish(),
       // Qloo returns good_for as an array of ambience/event tags, not a string.
       good_for: z

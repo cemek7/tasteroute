@@ -446,11 +446,20 @@ Behaviour:
 **`price_level` is sparse.** Only 1 of 5 Abuja places carried it. Used as a
 hard `filter.price_level.max`, budget would discard most of the city for a
 field most venues lack. So budget is applied as a hard filter **only when the
-pool stays viable**: if it empties a slot, it is relaxed to a scoring
-preference and reported in `intentEcho.ignored` as "budget could not be
-applied strictly — few places here publish a price level". A stated ceiling
-still never produces a stop known to exceed it; what it cannot do is exclude
-places with no price data at all.
+pool stays viable**: if it empties a slot, the relaxation path gives the Qloo
+filter up and reports it in `intentEcho.ignored` as "budget could not be
+applied strictly — few places here publish a price level".
+
+Giving the filter up does not give the ceiling up. `price_level` is carried
+onto the candidate, and route building excludes any place whose published
+price level exceeds the stated ceiling, whether or not the Qloo filter
+survived. So a stated ceiling never produces a stop known to exceed it; what
+it cannot do is exclude places with no price data at all.
+
+It is deliberately **not** a scoring preference. Ranking on a field four
+places in five lack would rank by whether Qloo happened to publish the data,
+not by price, and would dress that up as a response to what the person asked
+for.
 
 **Discovery surfaces non-venues.** At `filter.popularity.max=0.5` the top
 Abuja result was *Grandview Estates*, `primary_genre:

@@ -4,7 +4,7 @@ import { createSession, resolvePreferenceTags, type ToolDefinition } from './too
 import { resolveAvoidTags } from '../intent/avoid'
 import { CONSTRAINT_LABELS } from '../intent/labels'
 import { cityCentre, RELAX_LABELS, relaxOnce } from '../intent/relax'
-import { UnknownLocalityError } from '../providers/qloo'
+import { QlooRequestError, UnknownLocalityError } from '../providers/qloo'
 import type {
   HardConstraints,
   IntentEcho,
@@ -263,8 +263,13 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
           return { error: e.message, trace: session.trace }
         }
         console.error('rescue search failed', (e as Error).message)
+        // A 400 means Qloo answered and rejected the query, so saying it
+        // could not be reached would be untrue.
+        const rejected = e instanceof QlooRequestError && e.status === 400
         return {
-          error: `Qloo could not be reached for ${locality.name}. Try again in a moment.`,
+          error: rejected
+            ? `Qloo rejected the search for ${locality.name}. This is a fault on our side, not yours.`
+            : `Qloo could not be reached for ${locality.name}. Try again in a moment.`,
           trace: session.trace,
         }
       }

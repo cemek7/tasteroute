@@ -115,6 +115,11 @@ export type Candidate = {
   address: string | null
   affinity: number | null
   popularity: number | null
+  /**
+   * Qloo's 1-4 price level, when it published one. About four places in five
+   * have none, so `null` and absent both mean "unknown", never "cheap".
+   */
+  priceLevel?: number | null
   isClosed: boolean | null
   hours: unknown | null
   tags: Tag[]

@@ -28,11 +28,43 @@ export class QlooRequestError extends Error {
   constructor(
     readonly status: number,
     readonly endpoint: string,
+    /** Qloo's own messages. They name the parameter it rejected. */
+    readonly details: string[] = [],
   ) {
-    super(`Qloo ${endpoint} returned ${status}`)
+    super(
+      details.length > 0
+        ? `Qloo ${endpoint} returned ${status}: ${details.join('; ')}`
+        : `Qloo ${endpoint} returned ${status}`,
+    )
     this.name = 'QlooRequestError'
   }
 }
+
+/**
+ * Qloo answers a bad request with `{"errors":[{"message":"...","path":"..."}]}`
+ * — measured against the live host. An unresolvable city and a parameter we
+ * built wrong both arrive as 400 and differ only in there, so the body is the
+ * only way to tell them apart.
+ */
+async function readErrors(res: Response): Promise<string[]> {
+  try {
+    const body = (await res.json()) as { errors?: { message?: unknown }[] }
+    if (!Array.isArray(body?.errors)) return []
+    return body.errors
+      .map((e) => (typeof e?.message === 'string' ? e.message : ''))
+      .filter((m): m is string => m.length > 0)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Only this says the city is the problem. Anything else 400 is our bug, and
+ * telling somebody their city does not exist because we sent a malformed
+ * number would send them away for no reason.
+ */
+const saysLocalityUnresolved = (details: string[]) =>
+  details.some((d) => /filter\.location/i.test(d) && /resolve|locality/i.test(d))
 
 const MAX_TAKE = 50
 
@@ -67,7 +99,7 @@ export class QlooProvider implements TasteProvider {
       headers: { 'X-Api-Key': this.apiKey, accept: 'application/json' },
       cache: 'no-store',
     })
-    if (!res.ok) throw new QlooRequestError(res.status, path)
+    if (!res.ok) throw new QlooRequestError(res.status, path, await readErrors(res))
     return res.json()
   }
 
@@ -129,7 +161,11 @@ export class QlooProvider implements TasteProvider {
     try {
       raw = await this.get('/v2/insights', params)
     } catch (e) {
-      if (e instanceof QlooRequestError && e.status === 400) {
+      if (
+        e instanceof QlooRequestError &&
+        e.status === 400 &&
+        saysLocalityUnresolved(e.details)
+      ) {
         throw new UnknownLocalityError(q.locality)
       }
       throw e
@@ -160,6 +196,7 @@ function toCandidate(e: QlooEntity, index: number): Candidate {
     address: p.address ?? null,
     affinity: e.query?.affinity ?? null,
     popularity: e.popularity ?? null,
+    priceLevel: typeof p.price_level === 'number' ? p.price_level : null,
     isClosed: p.is_closed ?? null,
     hours: p.hours ?? null,
     tags: (e.tags ?? []).map((t) => ({

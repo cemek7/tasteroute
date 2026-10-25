@@ -95,21 +95,84 @@ describe('QlooProvider', () => {
     expect(candidates[0].category).toBe('cocktail_bar')
   })
 
-  it('throws UnknownLocalityError on a 400 from an unmatched city', async () => {
-    const fetchImpl = async () =>
-      new Response(JSON.stringify({ error: 'no locality found' }), { status: 400 })
+  // Qloo's 400 body, measured against the live host, is
+  // `{"errors":[{"message":"...","path":"..."}]}`. An unresolvable city and a
+  // parameter we built wrong both arrive as 400 and differ only in there.
+  const badLocality = () =>
+    new Response(
+      JSON.stringify({
+        errors: [
+          {
+            message: 'filter.location.query is unable to resolve to a valid locality.',
+            path: 'filter.location',
+          },
+        ],
+      }),
+      { status: 400 },
+    )
+
+  const badParameter = () =>
+    new Response(
+      JSON.stringify({
+        errors: [
+          {
+            message: 'filter.popularity.min must be a floating point value between 0 and 1',
+            path: 'filter.popularity.min',
+          },
+        ],
+      }),
+      { status: 400 },
+    )
+
+  it('throws UnknownLocalityError when Qloo says the city will not resolve', async () => {
     await expect(
-      provider(fetchImpl as unknown as typeof fetch).suggestPlaces({ locality: 'Nowhereville' }),
+      provider((async () => badLocality()) as unknown as typeof fetch).suggestPlaces({
+        locality: 'Nowhereville',
+      }),
     ).rejects.toBeInstanceOf(UnknownLocalityError)
   })
 
   it('gives UnknownLocalityError a message naming the city', async () => {
-    const fetchImpl = async () => new Response('{}', { status: 400 })
     expect.assertions(1)
-    await provider(fetchImpl as unknown as typeof fetch)
+    await provider((async () => badLocality()) as unknown as typeof fetch)
       .suggestPlaces({ locality: 'Nowhereville' })
       .catch((e: Error) => {
         expect(e.message).toContain('Nowhereville')
+      })
+  })
+
+  it('does not blame the city for a parameter Qloo rejected', async () => {
+    await expect(
+      provider((async () => badParameter()) as unknown as typeof fetch).suggestPlaces({
+        locality: 'Abuja',
+      }),
+    ).rejects.not.toBeInstanceOf(UnknownLocalityError)
+  })
+
+  it("reports a parameter 400 with Qloo's own message, so it can be fixed", async () => {
+    expect.assertions(2)
+    await provider((async () => badParameter()) as unknown as typeof fetch)
+      .suggestPlaces({ locality: 'Abuja' })
+      .catch((e: Error) => {
+        expect(e.message).toContain('filter.popularity.min')
+        expect(e.message).not.toContain('Abuja')
+      })
+  })
+
+  it('does not claim an unknown city when the 400 body says nothing useful', async () => {
+    await expect(
+      provider((async () => new Response('', { status: 400 })) as unknown as typeof fetch).suggestPlaces({
+        locality: 'Abuja',
+      }),
+    ).rejects.not.toBeInstanceOf(UnknownLocalityError)
+  })
+
+  it('never puts the key in an error message', async () => {
+    expect.assertions(1)
+    await provider((async () => badParameter()) as unknown as typeof fetch)
+      .suggestPlaces({ locality: 'Abuja' })
+      .catch((e: Error) => {
+        expect(e.message).not.toContain('test-key')
       })
   })
 
@@ -586,5 +649,39 @@ describe('seedEntities only needs an id and a name', () => {
     expect(
       await provider(fetchImpl as unknown as typeof fetch).seedEntities(['Zed']),
     ).toEqual([{ entityId: 'z', name: 'Zed' }])
+  })
+})
+
+// Reviewer finding I6: the spec promised a stated ceiling would never produce
+// a stop known to exceed it, but `price_level` never left the response — so
+// once the Qloo filter was relaxed, nothing stopped a ₦₦₦₦ place.
+describe('price level', () => {
+  const entity = (priceLevel: unknown) => ({
+    success: true,
+    results: {
+      entities: [
+        {
+          entity_id: 'p1',
+          name: 'Somewhere',
+          subtype: 'urn:entity:place',
+          properties: { price_level: priceLevel },
+          tags: [],
+        },
+      ],
+    },
+  })
+
+  it("carries Qloo's published price level onto the candidate", async () => {
+    const { candidates } = await provider(
+      (async () => ok(entity(3))) as unknown as typeof fetch,
+    ).suggestPlaces({ locality: 'Abuja' })
+    expect(candidates[0].priceLevel).toBe(3)
+  })
+
+  it('leaves the price level null for the four in five places that lack one', async () => {
+    const { candidates } = await provider(
+      (async () => ok(entity(null))) as unknown as typeof fetch,
+    ).suggestPlaces({ locality: 'Abuja' })
+    expect(candidates[0].priceLevel).toBeNull()
   })
 })
