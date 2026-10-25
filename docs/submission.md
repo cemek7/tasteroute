@@ -45,7 +45,10 @@ Remove Qloo and there is no product left.
 City, mood and the hours are all that is required. A collapsed panel adds a
 famous-to-hidden-gems slider, a budget, how far you will walk, who you are
 going with, what the night is for, the vibe, dietary and accessibility needs,
-places you already like, and — optionally — your age and gender.
+things to avoid, places you already like, and — optionally — your age and
+gender. "Use my location" turns the area limit into a real radius around where
+you are standing instead of a guessed city centre: a point in Wuse II with a
+1.5km limit returned three Abuja venues two and four minutes apart.
 
 The split that matters: **requirements are not preferences.** A dietary or
 accessibility need, a budget ceiling and an area limit become hard Qloo
@@ -98,8 +101,9 @@ and backfills rather than handing the user an error.
 ## How it was built
 
 Next.js with TypeScript, Tailwind for a mobile-first layout, the OpenAI SDK for
-the agent loop, Zod at the Qloo boundary, and Vitest for 156 unit tests that
-run with no network at all.
+the agent loop, Zod at the Qloo boundary, and Vitest for 397 unit tests that
+run with no network at all, plus 12 live tests that check our claims about Qloo
+against the hackathon host.
 
 Qloo sits behind a `TasteProvider` interface with a hand-written fixture
 implementation, which is what made the engine testable and lets the deployed
@@ -110,6 +114,12 @@ is missing.
 
 Each of these cost a debugging round and none is in the docs:
 
+- **`filter.tags` is a union, not an intersection.** Asking for halal AND a
+  wheelchair entrance returns places with either or with neither — a
+  supermarket and a curtain shop. `operator.filter.tags=intersection` is the
+  fix, and finding it late is why the first live test in the repo is the one
+  that asserts it. Anybody building accessibility or dietary filtering on Qloo
+  should check this before trusting their own screenshots.
 - `feature.explainability` only computes for entity signals. With tag signals
   it returns a warning and no explainability block.
 - Absent properties come back as explicit `null`, not omitted keys.

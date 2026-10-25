@@ -41,10 +41,10 @@ leanings, so a better taste match can never outvote them:
 | You say | Qloo parameter |
 |---|---|
 | famous ↔ hidden gems | `filter.popularity.min` / `.max` |
-| a budget | `filter.price_level.max` |
-| stay within 1/3/10km | `filter.location=POINT()` + `filter.location.radius` |
-| halal, vegetarian, vegan, gluten-free, kosher | `filter.tags` |
-| step-free or wheelchair access | `filter.tags` |
+| a budget | `filter.price_level.max`, and a ceiling our own code holds |
+| stay within 1/3/10km, of the centre or of where you are | `filter.location=POINT()` + `filter.location.radius` |
+| halal, vegetarian, vegan, gluten-free, kosher | `filter.tags` with `operator.filter.tags=intersection` |
+| wheelchair entrance, restroom, seating, lift, parking | `filter.tags` with `operator.filter.tags=intersection` |
 | things to avoid | `filter.exclude.tags` |
 
 **Interpreted by the agent, as weighted signals.** These are leanings, and the
@@ -101,7 +101,7 @@ and how long each took.
 ```bash
 npm install
 cp .env.example .env.local   # then fill in your keys
-npm test                     # 156 tests, no network needed
+npm test                     # 397 tests, no network needed
 npm run dev
 ```
 
@@ -119,7 +119,11 @@ npm test          # unit tests, no network
 npm run typecheck
 ```
 
-The live Qloo tests in `src/lib/providers/qloo.live.test.ts` run only when
+397 unit tests, and 12 live tests that check the claims this README makes
+about Qloo — including that two required tags intersect rather than union,
+which is the one claim no mock could ever have verified.
+
+The live tests in `src/lib/providers/qloo.live.test.ts` run only when
 `QLOO_API_KEY` is set, and are skipped otherwise:
 
 ```bash
@@ -153,9 +157,21 @@ Recorded because the docs do not say it and each one cost a debugging round:
 - The obscure end of the catalogue is housing estates, car parks, pharmacies
   and phone shops. Of 20 Abuja results below 0.5 popularity, three were places
   you would go out to — so venue kinds are an allow-list, not a deny-list.
+- **`filter.tags` is a UNION by default.** Asking for halal AND a wheelchair
+  entrance returns places with either, or with neither. Two requirements come
+  back as a supermarket and a curtain shop unless you send
+  `operator.filter.tags=intersection`. This cost a fortnight of the app
+  reporting both needs as applied while honouring neither; the live test for
+  it is the first in `qloo.live.test.ts`.
 - `properties.price_level` is present on about one place in five, so a budget
-  used as a hard filter discards most of a city. It relaxes rather than
-  emptying the pool.
+  used as a hard filter discards most of a city. The Qloo filter relaxes
+  rather than emptying the pool, and our own code still refuses any place
+  whose published level exceeds the ceiling. A place with no price level is
+  unknown, not cheap, and stays in.
+- A bad request answers 400 with `{"errors":[{"message","path"}]}`. An
+  unresolvable city and a parameter you built wrong differ only in there, so
+  the body is the only way to avoid telling somebody their city does not
+  exist.
 - `signal.demographics` genuinely changes results: the same Abuja restaurant
   query returns Transcorp Hilton with no demographics, City Park for
   `age=24_and_younger`, and 355 Steakhouse for `gender=female`.
@@ -187,6 +203,12 @@ Never commit a key.
   stop, which is also what guarantees a place cannot appear twice.
 - We do not ask which day you are going out, so a venue open only on Mondays
   counts as open.
+- A budget can only exclude places that publish a price level, which is about
+  one in five. The echo says so rather than implying the whole route was
+  priced.
+- There is no step-free tag in Qloo's vocabulary — a query for it returns
+  parking and wifi — so the product does not offer one. The five wheelchair
+  tags Qloo does publish are offered instead.
 
 ## Licence
 

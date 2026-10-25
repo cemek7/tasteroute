@@ -1,6 +1,6 @@
 # TasteRoute status
 
-Last updated: 24 October 2026 (richer intent shipped).
+Last updated: 25 October 2026 (review fixes and geolocation shipped).
 
 ## Where it stands
 
@@ -8,10 +8,26 @@ The whole product is built and tested: engine, Qloo adapter, agent loop, API,
 mobile UI, save and share — plus the richer intent work: a discovery slider,
 hard requirements, a clarifying question on its own endpoint, photo-and-rating
 stop cards, vibe/occasion/party/demographic signals, a narrative, stop
-swapping, and remembered preferences.
+swapping, remembered preferences, and "use my location" as the radius centre.
 
-333 unit tests pass, 5 live Qloo tests pass with a key, typecheck is clean,
+397 unit tests pass, 12 live Qloo tests pass with a key, typecheck is clean,
 `next build` succeeds, and 16 browser checks pass at phone width.
+
+Every finding from the whole-branch review is fixed: three Critical and ten
+Important. The three that mattered most were all the same fault — the app
+telling somebody a constraint had been applied when it had not:
+
+- `filter.tags` unions by default, so halal AND wheelchair access returned
+  places with neither while both were reported as applied. Now sent with
+  `operator.filter.tags=intersection`, and requirements are given up one at a
+  time rather than as a set.
+- The sample-data path discarded every computed constraint and still reported
+  strong confidence.
+- A budget ceiling vanished the moment the Qloo filter was relaxed, because
+  `price_level` never reached the candidate. Our own code now holds the
+  ceiling on the price levels Qloo does publish.
+
+Seven minor findings are deferred and listed in the ledger.
 
 It has been run end to end against live Qloo and a live model many times and
 returns real routes with real evidence.
