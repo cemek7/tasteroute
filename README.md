@@ -102,7 +102,7 @@ and how long each took.
 ```bash
 npm install
 cp .env.example .env.local   # then fill in your keys
-npm test                     # 439 tests, no network needed
+npm test                     # 445 tests, no network needed
 npm run dev
 ```
 
@@ -120,7 +120,7 @@ npm test          # unit tests, no network
 npm run typecheck
 ```
 
-439 unit tests, and 12 live tests that check the claims this README makes
+445 unit tests, and 12 live tests that check the claims this README makes
 about Qloo — including that two required tags intersect rather than union,
 which is the one claim no mock could ever have verified.
 

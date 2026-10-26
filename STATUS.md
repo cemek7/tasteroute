@@ -10,7 +10,7 @@ hard requirements, a clarifying question on its own endpoint, photo-and-rating
 stop cards, vibe/occasion/party/demographic signals, a narrative, stop
 swapping, remembered preferences, and "use my location" as the radius centre.
 
-439 unit tests pass, 12 live Qloo tests pass with a key, typecheck is clean,
+445 unit tests pass, 12 live Qloo tests pass with a key, typecheck is clean,
 `next build` succeeds, and 16 browser checks pass at phone width.
 
 Every finding from the whole-branch review is fixed: three Critical and ten
