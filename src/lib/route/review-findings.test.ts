@@ -57,8 +57,14 @@ describe('a substring must not decide a venue kind', () => {
   })
 
   it('does not treat a country club or golf club as a nightcap', () => {
+    // The finding this protects is that a word shared with "club" must not
+    // make a place nightlife. These are real venues and are offered as
+    // daytime ones; what they must never be is the last drink of the night.
     for (const category of ['country_club', 'golf_club', 'health_club']) {
-      expect(slotsFor(mk({ id: category, category }))).toEqual([])
+      const slots = slotsFor(mk({ id: category, category }))
+      expect(slots, category).not.toContain('close')
+      expect(slots, category).not.toContain('late')
+      expect(slots, category).not.toContain('main')
     }
   })
 

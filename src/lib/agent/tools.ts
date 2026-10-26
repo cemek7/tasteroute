@@ -101,10 +101,10 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
  */
 const SLOT_QUERIES: Record<SlotName, string[]> = {
   morning: ['cafe', 'coffee', 'bakery', 'breakfast'],
-  activity: ['museum', 'gallery', 'park', 'market'],
+  activity: ['museum', 'gallery', 'park', 'sports club', 'stadium', 'market'],
   open: ['cafe', 'coffee', 'bakery'],
   main: ['restaurant', 'cuisine'],
-  afternoon: ['park', 'gallery', 'market', 'cafe'],
+  afternoon: ['park', 'gallery', 'golf', 'sports club', 'market', 'cafe'],
   close: ['cocktail bar', 'lounge', 'bar'],
   // `night_club`, `club` and `dancing` are the genres the live host returns
   // for these; "nightclub" as one word returns nothing useful.

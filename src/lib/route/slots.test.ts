@@ -121,10 +121,15 @@ describe('venue kinds, against the genres Qloo actually publishes', () => {
   })
 
   // These are real Qloo genres, not hypotheticals: a search for "club"
-  // returns sports_club and soccer_club, and "park" returns park_ride.
-  it('refuses the clubs that are not nightlife', () => {
+  // returns sports_club and soccer_club. They are places worth planning
+  // around, so they are kept — but never as nightlife. Taking them out
+  // altogether was the wrong fix for that.
+  it('keeps the clubs that are not nightlife, and keeps them out of the night', () => {
     for (const id of ['sports_club', 'soccer_club', 'golf_club', 'health_club']) {
-      expect(slotsFor(withGenre(`urn:tag:genre:place:${id}`)), id).toEqual([])
+      const slots = slotsFor(withGenre(`urn:tag:genre:place:${id}`))
+      expect(slots.length, id).toBeGreaterThan(0)
+      expect(slots, id).not.toContain('late')
+      expect(slots, id).not.toContain('close')
     }
   })
 
@@ -209,6 +214,80 @@ describe('the daytime genres a real Lagos pool turned up', () => {
       // refused rather than guessed at.
       'event_venue',
     ]) {
+      expect(slotsFor(withGenre(id)), id).toEqual([])
+    }
+  })
+})
+
+/**
+ * Sports venues are places people plan an outing around — a match, a round
+ * of golf, an afternoon at the club. The earlier build refused them, which
+ * was the wrong fix for a real problem: `sports_club` and `soccer_club`
+ * share a word with `club`, so they were being offered as the last drink of
+ * the night. They get their own kind instead, matched before nightlife.
+ *
+ * Every genre below was confirmed against the live host.
+ */
+describe('sports and leisure venues are their own kind, not nightlife', () => {
+  const withGenre = (id: string): Candidate => ({
+    ...byId('fx-cafe-neo'),
+    id: `s-${id}`,
+    name: 'Somewhere',
+    category: null,
+    primaryGenre: `urn:tag:genre:place:${id}`,
+    tags: [],
+  })
+
+  it('reads them as sports', () => {
+    for (const id of [
+      'sports_club',
+      'soccer_club',
+      'sports_complex',
+      'stadium',
+      'golf',
+      'golf_course',
+      'golf_club',
+      'tennis',
+      'tennis_court',
+      'tennis_club',
+      'yacht_club',
+      'country_club',
+      'gymnastics_club',
+    ]) {
+      expect(kindOf(withGenre(id))?.kind, id).toBe('sports')
+    }
+  })
+
+  it('offers them in the daytime phases', () => {
+    for (const id of ['sports_club', 'soccer_club', 'stadium', 'golf_course']) {
+      const slots = slotsFor(withGenre(id))
+      expect(slots, id).toContain('activity')
+      expect(slots, id).toContain('afternoon')
+    }
+  })
+
+  it('never offers them as a drink or a club night', () => {
+    for (const id of ['sports_club', 'soccer_club', 'stadium', 'yacht_club']) {
+      const slots = slotsFor(withGenre(id))
+      expect(slots, id).not.toContain('close')
+      expect(slots, id).not.toContain('late')
+      expect(slots, id).not.toContain('main')
+    }
+  })
+
+  it('still reads a sports bar as a bar, because that is what it is', () => {
+    expect(kindOf(withGenre('bar:sports_bar'))?.kind).toBe('bar')
+    expect(slotsFor(withGenre('bar:sports_bar'))).toContain('close')
+  })
+
+  it('still reads a night club as a club', () => {
+    expect(kindOf(withGenre('night_club'))?.kind).toBe('club')
+    expect(kindOf(withGenre('club'))?.kind).toBe('club')
+  })
+
+  // Real siblings the live tag search returns beside the venues above.
+  it('refuses the shops and services that share their words', () => {
+    for (const id of ['tennis_store', 'sports_massage_therapist', 'tennis_shop']) {
       expect(slotsFor(withGenre(id)), id).toEqual([])
     }
   })

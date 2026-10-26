@@ -28,13 +28,6 @@ const LODGING = [
  * without this list a five-a-side pitch becomes the last stop of the night.
  */
 const NOT_GOING_OUT = [
-  'sports_club',
-  'soccer_club',
-  'golf_club',
-  'country_club',
-  'health_club',
-  'book_club',
-  'yacht_club',
   'park_ride',
   'parking_lot',
   'car_park',
@@ -42,11 +35,14 @@ const NOT_GOING_OUT = [
   'supermarket',
   'hardware_store',
   'hunting_preserve',
-  'fitness_center',
   'wedding_venue',
   'city_hall',
   'amusement_park_ride',
   'banquet_hall',
+  'tennis_store',
+  'tennis_shop',
+  'sports_massage_therapist',
+  'book_club',
 ]
 
 function isLodging(c: Candidate): boolean {
@@ -71,11 +67,48 @@ export type VenueKind =
   | 'dessert'
   | 'culture'
   | 'activity'
+  | 'sports'
   | 'restaurant'
   | 'bar'
   | 'club'
 
 const KIND_MARKERS: { kind: VenueKind; needles: string[]; weight: number }[] = [
+  // Sports first, and this order is the whole point: `sports_club`,
+  // `soccer_club`, `yacht_club` and `gymnastics_club` all contain the word
+  // "club", so anything matching them after the nightlife markers would be
+  // offered as the last drink of the night.
+  {
+    kind: 'sports',
+    needles: [
+      'sports_club',
+      'soccer_club',
+      'football_club',
+      'sports_complex',
+      'sports_center',
+      'sports_centre',
+      'stadium',
+      'arena',
+      'golf',
+      'golf_course',
+      'golf_club',
+      'tennis',
+      'tennis_court',
+      'tennis_club',
+      'tennis_center',
+      'yacht_club',
+      'country_club',
+      'gymnastics_club',
+      'gymnastics_center',
+      'cricket_club',
+      'rugby_club',
+      'polo_club',
+      'swimming_pool',
+      'health_club',
+      'spa_health_club',
+      'spa_and_health_club',
+    ],
+    weight: 0.9,
+  },
   { kind: 'club', needles: ['night_club', 'nightclub', 'dancing', 'discotheque', 'disco'], weight: 1 },
   { kind: 'club', needles: ['club'], weight: 0.9 },
   { kind: 'bar', needles: ['cocktail_bar', 'wine_bar', 'sports_bar'], weight: 1 },
@@ -94,11 +127,13 @@ const KIND_MARKERS: { kind: VenueKind; needles: string[]; weight: number }[] = [
  */
 const PHASE_KINDS: Record<SlotName, VenueKind[]> = {
   morning: ['cafe', 'dessert'],
-  activity: ['culture', 'activity'],
+  activity: ['culture', 'activity', 'sports'],
   open: ['cafe', 'dessert', 'culture'],
   main: ['restaurant'],
-  afternoon: ['activity', 'culture', 'cafe', 'dessert'],
+  afternoon: ['activity', 'culture', 'sports', 'cafe', 'dessert'],
   close: ['bar'],
+  // A sports club is not a bar and a stadium is not a club night, so
+  // `sports` is deliberately absent here.
   late: ['club', 'bar'],
 }
 
