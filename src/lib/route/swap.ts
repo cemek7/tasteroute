@@ -1,4 +1,5 @@
 import { buildNarrative } from './narrative'
+import { routeId } from './id'
 import { orderStops } from './order'
 import type { Candidate, Route, SlotName, Stop } from '../providers/types'
 
@@ -77,6 +78,12 @@ export function swapStop(route: Route, slot: SlotName, candidateId: string): Rou
 
   return {
     ...route,
+    // A different set of places is a different route. Saving keys on the id,
+    // so keeping the old one would overwrite the route this was swapped from.
+    id: routeId(
+      route.locality.name,
+      stops.map((st) => st.candidate.id),
+    ),
     stops,
     narrative: buildNarrative(stops, route.narrativeWindow),
     alternativesBySlot,

@@ -45,7 +45,9 @@ export function StopCard({
           height={144}
           loading="lazy"
           onError={(e) => {
-            e.currentTarget.style.visibility = 'hidden'
+            // Collapse it, do not just hide it: a hidden image still holds
+            // its 144px, leaving a blank band above the venue name.
+            e.currentTarget.style.display = 'none'
           }}
           className="h-36 w-full object-cover"
           style={{ background: 'var(--border)' }}

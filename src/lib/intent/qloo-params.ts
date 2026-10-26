@@ -18,6 +18,15 @@ const PERSONA_DISCOVERY: Record<Intent['persona'] & string, number> = {
 }
 
 /**
+ * The discovery value the search will actually use. The slider needs this,
+ * not its own 0.5: showing the midpoint while a chosen persona quietly
+ * applies 0.75 tells the person something untrue about their own search.
+ */
+export function effectiveDiscovery(intent: Intent): number | undefined {
+  return intent.discovery ?? (intent.persona ? PERSONA_DISCOVERY[intent.persona] : undefined)
+}
+
+/**
  * Turns the half of the intent our code owns into Qloo parameters. The agent
  * never sees these: a budget ceiling or a dietary need that could be weighed
  * against a taste match is not a constraint.
@@ -29,8 +38,7 @@ export function constraintsFromIntent(intent: Intent): {
   const constraints: HardConstraints = {}
   const applied: IntentEcho['applied'] = []
 
-  const discovery =
-    intent.discovery ?? (intent.persona ? PERSONA_DISCOVERY[intent.persona] : undefined)
+  const discovery = effectiveDiscovery(intent)
 
   if (discovery !== undefined) {
     if (discovery < 1 / 3) {

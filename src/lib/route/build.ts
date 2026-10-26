@@ -12,6 +12,7 @@ import type {
 import { assessSignal } from './assess'
 import { buildNarrative } from './narrative'
 import { isOpenDuring } from './open-tonight'
+import { routeId } from './id'
 import { orderStops } from './order'
 import { scoreCandidate, type ScoreContext } from './score'
 import { slotsFor } from './slots'
@@ -285,9 +286,10 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
       : []
 
   return {
-    id: `${input.locality.name.toLowerCase().replace(/\s+/g, '-')}-${stops
-      .map((s) => s.candidate.id)
-      .join('_')}`,
+    id: routeId(
+      input.locality.name,
+      stops.map((s) => s.candidate.id),
+    ),
     locality: input.locality,
     mood: input.request.mood,
     createdAt: new Date().toISOString(),

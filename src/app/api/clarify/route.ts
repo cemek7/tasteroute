@@ -4,6 +4,7 @@ import { createOpenAIClient } from '@/lib/agent/openai-client'
 import { SpendLimiter } from '@/lib/agent/spend'
 import { hasModelAccess } from '@/lib/env'
 import { parseRouteBody } from '@/lib/route/request-body'
+import { safeMessage } from '@/lib/log'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
       await askClarifying({ request: parsed.value, client: createOpenAIClient() }),
     )
   } catch (e) {
-    console.error('clarify failed', (e as Error).message)
+    console.error('clarify failed', safeMessage(e))
     return NextResponse.json({ clear: true })
   }
 }

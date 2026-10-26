@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { FIXTURE_CANDIDATES } from '../providers/fixture'
 import { buildRoute, type BuildInput } from './build'
+import { routeId } from './id'
 import { swapStop } from './swap'
 import type { Candidate, Route, SlotName } from '../providers/types'
 
@@ -263,5 +264,31 @@ describe('the alternatives still describe the route after a swap', () => {
       const others = next.stops.filter((x) => x.slot !== s).map((x) => x.candidate.category)
       for (const c of next.alternativesBySlot[s]) expect(others).not.toContain(c.category)
     }
+  })
+})
+
+describe('a swapped route is a different route, so saving it does not overwrite', () => {
+  it('takes a new id when a stop changes', () => {
+    const r = route()
+    const slot = slotWithOptions(r)
+    const next = swapStop(r, slot, r.alternativesBySlot[slot][0].id)
+    expect(next.id).not.toBe(r.id)
+  })
+
+  it('builds that id by the same rule buildRoute uses', () => {
+    const r = route()
+    const slot = slotWithOptions(r)
+    const next = swapStop(r, slot, r.alternativesBySlot[slot][0].id)
+    expect(next.id).toBe(
+      routeId(
+        next.locality.name,
+        next.stops.map((s) => s.candidate.id),
+      ),
+    )
+  })
+
+  it('keeps the id when the swap was refused', () => {
+    const r = route()
+    expect(swapStop(r, 'open', 'no-such-candidate').id).toBe(r.id)
   })
 })

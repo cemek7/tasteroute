@@ -10,6 +10,7 @@ import { parseRouteBody } from '@/lib/route/request-body'
 import { constraintsFromIntent } from '@/lib/intent/qloo-params'
 import { mergeEcho } from '@/lib/intent/echo'
 import { degradedEcho } from '@/lib/intent/degraded'
+import { safeMessage } from '@/lib/log'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -97,7 +98,7 @@ export async function POST(req: Request) {
     })
   } catch (e) {
     // Never leak a stack trace or a key to the client.
-    console.error('route planning failed', (e as Error).message)
+    console.error('route planning failed', safeMessage(e))
     return NextResponse.json(
       { error: 'Something went wrong planning that route. Try again.' },
       { status: 500 },

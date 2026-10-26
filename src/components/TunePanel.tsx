@@ -11,6 +11,7 @@ import {
   AGE_BANDS,
 } from '@/lib/intent/vocabulary'
 import { forgetPreferences } from '@/lib/intent/preferences'
+import { effectiveDiscovery } from '@/lib/intent/qloo-params'
 import { UseMyLocation } from './UseMyLocation'
 import { ChipListInput } from './ChipListInput'
 import type { AccessibilityId, DietaryId, Intent } from '@/lib/providers/types'
@@ -28,7 +29,8 @@ export function TunePanel({
   onChange: (next: Intent) => void
 }) {
   const [open, setOpen] = useState(false)
-  const discovery = intent.discovery ?? 0.5
+  // What the search will actually use, not a midpoint the search ignores.
+  const discovery = effectiveDiscovery(intent) ?? 0.5
 
   return (
     <section>

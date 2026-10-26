@@ -168,7 +168,7 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
 
       <button
         type="submit"
-        disabled={busy}
+        disabled={busy || pending !== null}
         className="w-full rounded-md px-4 py-3 text-base font-semibold disabled:opacity-60"
         style={{ background: 'var(--accent)', color: '#0a0a0a' }}
       >

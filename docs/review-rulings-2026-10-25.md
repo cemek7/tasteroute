@@ -412,3 +412,59 @@ Final: minor (deferred): the next.config.ts image allow-list is dead config.
 
 Final: fix pass complete. C1-C3 and I1-I10 all fixed and committed. Suite
 397/397 unit, 12/12 live, typecheck clean.
+
+## The deferred minors, closed 26 Oct 2026
+
+All seven are now fixed. Each line names the fix and the test that proves it.
+
+Minor: the raw provider error in `console.error` may carry a partial key.
+  Fixed: new `src/lib/log.ts`. `safeMessage` redacts the configured secret
+  values, any contiguous token starting with a key's first eight characters
+  (the shape a truncated key takes), `sk-` tokens, and bearer or api-key
+  header echoes. All five log sites now go through it, as does the one error
+  string handed back to the model — a key must never travel to OpenRouter
+  either. 7 tests in `src/lib/log.test.ts`, RED (module absent) -> GREEN.
+
+Minor: `swapStop` keeps the old `route.id`, so saving a swapped route
+overwrites the original.
+  Fixed: `routeId` extracted to `src/lib/route/id.ts` and used by both
+  `buildRoute` and `swapStop`, so a route's identity is always its locality
+  plus its places in order. `saveRoute` filters on that id, so a swapped
+  route now saves beside the original rather than replacing it. 3 tests in
+  `swap.test.ts`, RED -> GREEN.
+
+Minor: the discovery slider shows 0.5 while a chosen persona applies 0.75,
+0.6 or 0.4.
+  Fixed: `effectiveDiscovery` exported from `qloo-params.ts` and read by
+  `TunePanel`, so the slider shows the value the search will use. 5 tests,
+  RED -> GREEN.
+  Found while doing it: `local` resolves to 0.4, which sits inside the band
+  that applies no popularity filter at all. That is consistent rather than
+  false — the slider now shows 0.4 and nothing is filtered — and a test pins
+  it so the next reader does not mistake it for a bug.
+  Cost if wrong: if the bands move, that test must move with them.
+
+Minor: `CONSTRAINT_LABELS.demographics` is unreachable.
+  Fixed: new `LabelledConstraint` type excludes it, so the invariant is the
+  compiler's to keep rather than a comment's. `relaxOrder` and `relaxOnce`
+  narrowed to match; the compiler then named the single consumer in
+  `loop.ts` that assumed otherwise. Typecheck is the test here.
+
+Minor: the `next.config.ts` image allow-list is dead config.
+  Fixed: removed, with a note saying why — nothing uses `next/image`.
+
+Minor: a broken image leaves a 144px blank band on the card.
+  Fixed: `onError` now sets `display: none` rather than
+  `visibility: hidden`, which collapses the band.
+  No test: this repo's Vitest runs in `node` with `*.test.ts` only. Adding
+  jsdom and a React testing library for a one-line style change was not
+  worth the dependency risk days before submission. Verified by reading the
+  change, not by a test, and said so here rather than implying coverage.
+
+Minor: the form stays submittable while a clarifying question is pending.
+  Fixed: `disabled={busy || pending !== null}`. The question's own Skip
+  button is the way past it.
+  No test, for the same reason as above.
+
+Suite after the pass: 412 unit, 12 live, typecheck clean, production build
+clean.

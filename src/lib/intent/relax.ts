@@ -1,4 +1,4 @@
-import { CONSTRAINT_LABELS } from './labels'
+import { CONSTRAINT_LABELS, type LabelledConstraint } from './labels'
 import type { HardConstraints, TasteProvider } from '../providers/types'
 
 /**
@@ -12,7 +12,7 @@ import type { HardConstraints, TasteProvider } from '../providers/types'
  * not want hookah does not want hookah. Demographics are a signal rather than
  * a filter, so they never empty a pool and never need relaxing.
  */
-const ORDER: (keyof HardConstraints)[] = [
+const ORDER: LabelledConstraint[] = [
   'radius',
   'popularityMax',
   'popularityMin',
@@ -23,7 +23,7 @@ const ORDER: (keyof HardConstraints)[] = [
 /** Kept as a named re-export so existing callers do not have to change. */
 export const RELAX_LABELS = CONSTRAINT_LABELS
 
-export function relaxOrder(constraints: HardConstraints): (keyof HardConstraints)[] {
+export function relaxOrder(constraints: HardConstraints): LabelledConstraint[] {
   return ORDER.filter((k) => constraints[k] !== undefined)
 }
 
@@ -40,7 +40,7 @@ function requirementGiveUpOrder(tags: string[]): string[] {
 
 export function relaxOnce(constraints: HardConstraints): {
   next: HardConstraints
-  dropped: keyof HardConstraints
+  dropped: LabelledConstraint
   droppedDetail?: string
 } | null {
   const dropped = relaxOrder(constraints)[0]

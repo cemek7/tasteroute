@@ -5,6 +5,7 @@ import { resolveAvoidTags } from '../intent/avoid'
 import { CONSTRAINT_LABELS } from '../intent/labels'
 import { cityCentre, RELAX_LABELS, relaxOnce } from '../intent/relax'
 import { QlooRequestError, UnknownLocalityError } from '../providers/qloo'
+import { safeMessage } from '../log'
 import type {
   HardConstraints,
   IntentEcho,
@@ -142,7 +143,7 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
       }
       // Reported, not swallowed. This threw for weeks on a schema mismatch
       // and the only symptom was that naming a place you liked did nothing.
-      console.error('seed lookup failed', (e as Error).message)
+      console.error('seed lookup failed', safeMessage(e))
       ignored.push({
         label: 'Places you like',
         reason: 'the lookup failed, so what you named did not shape the search',
@@ -203,7 +204,7 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
         session.tools,
       )
     } catch (e) {
-      console.error('planner call failed', (e as Error).message)
+      console.error('planner call failed', safeMessage(e))
       return { error: planErrorMessage(e), trace: session.trace }
     }
 
@@ -231,7 +232,7 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
           return { error: e.message, trace: session.trace }
         }
         // Anything else is reported back to the model, which may recover.
-        result = { error: (e as Error).message }
+        result = { error: safeMessage(e) }
       }
 
       if (call.name === 'finalize_route') {
@@ -262,7 +263,7 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
         if (e instanceof UnknownLocalityError) {
           return { error: e.message, trace: session.trace }
         }
-        console.error('rescue search failed', (e as Error).message)
+        console.error('rescue search failed', safeMessage(e))
         // A 400 means Qloo answered and rejected the query, so saying it
         // could not be reached would be untrue.
         const rejected = e instanceof QlooRequestError && e.status === 400

@@ -10,7 +10,7 @@ hard requirements, a clarifying question on its own endpoint, photo-and-rating
 stop cards, vibe/occasion/party/demographic signals, a narrative, stop
 swapping, remembered preferences, and "use my location" as the radius centre.
 
-397 unit tests pass, 12 live Qloo tests pass with a key, typecheck is clean,
+412 unit tests pass, 12 live Qloo tests pass with a key, typecheck is clean,
 `next build` succeeds, and 16 browser checks pass at phone width.
 
 Every finding from the whole-branch review is fixed: three Critical and ten
@@ -27,7 +27,10 @@ telling somebody a constraint had been applied when it had not:
   `price_level` never reached the candidate. Our own code now holds the
   ceiling on the price levels Qloo does publish.
 
-Seven minor findings are deferred and listed in the ledger.
+All seven deferred minor findings are now fixed; the ledger records each
+one and what closed it. Two were UI-only one-liners with no test, because
+this repo has no DOM test environment and adding one for them was not
+worth the risk this close to submission.
 
 It has been run end to end against live Qloo and a live model many times and
 returns real routes with real evidence.
