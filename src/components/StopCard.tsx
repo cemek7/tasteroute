@@ -53,7 +53,7 @@ export function StopCard({
             // its 144px, leaving a blank band above the venue name.
             e.currentTarget.style.display = 'none'
           }}
-          className="h-36 w-full object-cover"
+          className="h-36 w-full object-cover lg:h-44"
           style={{ background: 'var(--border)' }}
         />
       )}
@@ -128,7 +128,7 @@ export function StopCard({
             {showSwap ? 'keep this one' : 'swap this stop'}
           </button>
           {showSwap && (
-            <ul className="mt-2 space-y-1">
+            <ul className="mt-2 grid gap-1 sm:grid-cols-2">
               {alternatives.map((c) => (
                 <li key={c.id}>
                   <button

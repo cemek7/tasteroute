@@ -24,9 +24,9 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-4 py-10">
-      <h1 className="text-3xl font-bold tracking-tight">TasteRoute</h1>
-      <p className="mt-2 text-sm" style={{ color: 'var(--muted)' }}>
+    <main className="mx-auto w-full max-w-md px-4 py-10 md:max-w-2xl md:px-6 lg:max-w-5xl lg:px-8 lg:py-14">
+      <h1 className="text-3xl font-bold tracking-tight lg:text-4xl">TasteRoute</h1>
+      <p className="mt-2 max-w-prose text-sm" style={{ color: 'var(--muted)' }}>
         Say the mood and the hours. Get a plan of three to five stops, in
         order, with the reason for each one.
       </p>

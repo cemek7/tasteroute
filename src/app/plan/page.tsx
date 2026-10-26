@@ -30,7 +30,7 @@ export default function PlanPage() {
   }, [])
 
   return (
-    <main className="mx-auto max-w-md px-4 py-10">
+    <main className="mx-auto w-full max-w-md px-4 py-10 md:max-w-2xl md:px-6 lg:max-w-6xl lg:px-8">
       <Link href="/" className="text-xs underline" style={{ color: 'var(--muted)' }}>
         ← Plan another evening
       </Link>

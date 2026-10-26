@@ -6,22 +6,26 @@ talking head.
 
 ## Before you record
 
-The app is mobile-first: its content column is capped at 448px and centred.
-Recorded at full desktop width that is a thin strip of app in a wide empty
-frame, and the text is too small to read back. No phone is needed to fix
-that — the browser does it:
+The app lays itself out for the screen it is on. Below 1024px it is the
+single mobile column it always was; at 1024px and up the form puts the
+questions on the left and the options panel on the right, and a plan puts
+the stops on the left with the share, save and extra-places panel beside
+them. So a desktop recording needs no zoom trick and no phone:
 
-1. Resize the browser window to roughly 1000 × 800. Keep it landscape;
-   Devpost and Loom both play back landscape, and a portrait video gets
-   black bars either side on a judge's screen.
-2. Zoom the page to 150% (`Ctrl` and `+`, three presses from 100%). That
-   shrinks the CSS viewport to about 600px, so the 448px column fills
-   roughly three quarters of the frame and every label is legible.
-3. In Loom choose **Screen Only → Current Tab**. Current Tab records just
+1. Maximise the browser window on this desktop, at 100% zoom (`Ctrl 0`).
+   At 1440px wide the whole form fits one screen — city, mood, hours and
+   every option visible at once, nothing to scroll past on camera.
+2. In Loom choose **Screen Only → Current Tab**. Current Tab records just
    the page, with no browser chrome and no desktop behind it. Do not pick
-   Full Desktop: it would frame your whole screen around a small app.
-4. Turn the camera bubble off, or move it to a corner where it covers no
-   stop card.
+   Full Desktop: it would film your whole screen, taskbar included.
+3. Turn the camera bubble off, or move it to a corner where it covers no
+   stop card. At 1440px the bottom-left corner is empty.
+4. Keep it landscape. Devpost and Loom both play back landscape, and a
+   portrait video gets black bars either side on a judge's screen.
+
+If you would rather show the mobile layout, narrow the window to about
+500px instead and the same script still works — the stops simply stack
+under the plan instead of sitting beside the panel.
 
 Then:
 
@@ -49,7 +53,8 @@ the video; one who suspects a cut does not.
 > It runs on Qloo's taste graph — not on reviews, and not on whatever is
 > nearest.
 
-*Shot: the form, with the options panel already visible below it.*
+*Shot: the whole form in one screen — questions on the left, the options
+panel open on the right. Nothing was clicked to reveal it.*
 
 **0:16 – 0:38 — The hours decide the shape**
 

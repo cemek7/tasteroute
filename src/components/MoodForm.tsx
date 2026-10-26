@@ -103,6 +103,11 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
 
   return (
     <form onSubmit={submit} className="mt-8 space-y-4">
+      {/* The questions on the left, the options on the right, once the screen
+          is wide enough for both. The DOM order is the phone order, so a
+          narrow screen stacks exactly as it did before. */}
+      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+      <div className="space-y-4">
       <label className="block">
         <span className="text-xs font-medium uppercase tracking-wide" style={legend}>
           City
@@ -163,8 +168,12 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
           setEndHour(eh)
         }}
       />
+      </div>
 
-      <TunePanel intent={intent} onChange={setIntent} />
+      <div className="mt-4 lg:mt-0">
+        <TunePanel intent={intent} onChange={setIntent} />
+      </div>
+      </div>
 
       <button
         type="submit"

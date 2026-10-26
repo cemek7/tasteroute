@@ -64,9 +64,14 @@ export function RouteView({
       )}
 
       {route.narrative.line && (
-        <p className="mt-4 text-sm leading-relaxed">{route.narrative.line}</p>
+        <p className="mt-4 max-w-prose text-sm leading-relaxed">{route.narrative.line}</p>
       )}
 
+      {/* The stops stay one chronological column: a grid would read
+          left-to-right and break the "walk from the last place" line. The
+          width a desktop has spare goes to the panel beside them, which
+          follows the stops in the DOM so a phone sees the old page. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-8">
       <ol className="mt-4 space-y-3">
         {route.stops.map((s) => (
           <StopCard
@@ -78,7 +83,8 @@ export function RouteView({
         ))}
       </ol>
 
-      <div className="mt-6 flex gap-2">
+      <aside className="lg:sticky lg:top-8 lg:mt-4">
+      <div className="mt-6 flex gap-2 lg:mt-0 lg:flex-col">
         <button
           onClick={copyLink}
           className="flex-1 rounded-md border px-3 py-2.5 text-sm"
@@ -130,6 +136,8 @@ export function RouteView({
           </ul>
         </div>
       )}
+      </aside>
+      </div>
 
       <TracePanel trace={route.trace} />
     </section>
