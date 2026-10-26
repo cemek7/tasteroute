@@ -42,8 +42,16 @@ confidence. Public, no Vercel authentication wall.
 
 ## Blocking the submission
 
-1. **OpenRouter credit was $4.79** when measured on 23 Oct, and each route
-   costs roughly $0.006. Worth topping up before judging.
+1. **Deploy the current code.** `main` is at the two commits that fixed the
+   review findings and the seven minors; the hosted demo above still serves
+   the 24 Oct build. Run `npx vercel deploy --prod --yes` from the repo root.
+2. **Record the 3-minute video.** The shot-by-shot script, with the exact
+   narration and the things not to claim, is in `docs/demo-video-script.md`.
+3. **Paste the Devpost form** from `docs/submission.md`, plus the repo URL
+   and the demo URL.
+
+OpenRouter credit is not blocking: $4.99 of the $5 weekly limit was
+remaining on 26 Oct, resetting 2 Nov, and a route costs about $0.006.
 
 ## Commands
 
