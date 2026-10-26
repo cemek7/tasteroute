@@ -31,7 +31,7 @@ export function RouteView({
   const note = CONFIDENCE_NOTE[route.confidence]
 
   async function copyLink() {
-    const url = `${window.location.origin}/?r=${encodeRoute(route)}`
+    const url = `${window.location.origin}/plan?r=${encodeRoute(route)}`
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
@@ -100,9 +100,26 @@ export function RouteView({
         </button>
       </div>
 
+      {route.unfilledSlots.length > 0 && (
+        <p
+          className="mt-6 rounded-md border px-3 py-2 text-xs"
+          style={{ borderColor: '#854d0e', background: '#1c1405', color: '#fde68a' }}
+        >
+          Nothing Qloo returned fitted the{' '}
+          {route.unfilledSlots.map((s) => s.replace(/_/g, ' ')).join(' or ')} part of
+          this, so the plan is {route.stops.length} stops rather than the full
+          shape of your hours.
+        </p>
+      )}
+
       {route.alternatives.length > 0 && (
         <div className="mt-6">
-          <h4 className="text-sm font-semibold">Other places Qloo returned</h4>
+          <h4 className="text-sm font-semibold">
+            More places Qloo returned ({route.alternatives.length})
+          </h4>
+          <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+            Beyond the swaps offered on each stop above.
+          </p>
           <ul className="mt-2 space-y-1 text-xs" style={{ color: 'var(--muted)' }}>
             {route.alternatives.map((c) => (
               <li key={c.id}>

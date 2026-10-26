@@ -163,3 +163,53 @@ describe('venue kinds, against the genres Qloo actually publishes', () => {
     }
   })
 })
+
+/**
+ * Measured against the live host: an unfiltered Lagos pool of 50 came back
+ * with 36 places that matched no kind. Most of that is correct — hotels,
+ * malls, computer stores, a university, an airport — but nature preserves,
+ * cultural centres and event venues are real places to spend an afternoon
+ * and were being thrown away with them.
+ */
+describe('the daytime genres a real Lagos pool turned up', () => {
+  const withGenre = (id: string): Candidate => ({
+    ...byId('fx-cafe-neo'),
+    id: `d-${id}`,
+    name: 'Somewhere',
+    category: null,
+    primaryGenre: `urn:tag:genre:place:${id}`,
+    tags: [],
+  })
+
+  it('takes the places a day out actually goes', () => {
+    for (const id of [
+      'nature_preserve',
+      'cultural_center',
+      'concert_hall',
+      'amusement_park',
+      'amusement_center',
+    ]) {
+      expect(slotsFor(withGenre(id)).length, id).toBeGreaterThan(0)
+    }
+  })
+
+  // Every one of these is a real sibling the live tag search returns next to
+  // the genre above it, and each shares a word with it.
+  it('refuses the siblings that share a word but not a purpose', () => {
+    for (const id of [
+      'hunting_preserve',
+      'fitness_center',
+      'wedding_venue',
+      'city_hall',
+      'amusement_park_ride',
+      'banquet_hall',
+      // `event_venue` covers concert halls and wedding halls alike, and
+      // nothing in the data separates them. A live pool offered "The Canyon
+      // Lekki Halls & Event Centre" as an afternoon out, so the genre is
+      // refused rather than guessed at.
+      'event_venue',
+    ]) {
+      expect(slotsFor(withGenre(id)), id).toEqual([])
+    }
+  })
+})

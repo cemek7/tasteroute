@@ -4,6 +4,8 @@ import { createSession, resolvePreferenceTags, type ToolDefinition } from './too
 import { resolveAvoidTags } from '../intent/avoid'
 import { CONSTRAINT_LABELS } from '../intent/labels'
 import { cityCentre, RELAX_LABELS, relaxOnce } from '../intent/relax'
+import { phasesFor } from '../route/phases'
+import { slotsFor } from '../route/slots'
 import { QlooRequestError, UnknownLocalityError } from '../providers/qloo'
 import { safeMessage } from '../log'
 import type {
@@ -72,6 +74,12 @@ export type PlanOptions = {
 export type PlanResult =
   | { route: Route; roundsUsed: number; ignored: IntentEcho['ignored'] }
   | { error: string; trace: TraceEntry[] }
+
+/**
+ * How many candidates a phase wants before we stop searching for more. Three
+ * is a stop plus two to swap it for.
+ */
+const CHOICES_PER_PHASE = 3
 
 export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
   const { provider, request, locality, client } = opts
@@ -273,6 +281,26 @@ export async function planRoute(opts: PlanOptions): Promise<PlanResult> {
             : `Qloo could not be reached for ${locality.name}. Try again in a moment.`,
           trace: session.trace,
         }
+      }
+    }
+
+    // A plan with exactly one option per phase is not a plan anybody can
+    // adjust, and the model's taste searches reliably leave the day phases
+    // thin — a Lagos pool of fifty came back with one place for the morning.
+    // So top up every phase this plan needs before building it, not only the
+    // ones that came back completely empty.
+    const needed = phasesFor(request.timeWindow)
+    const thin = needed.filter(
+      (p) => session.pool.filter((c) => slotsFor(c).includes(p)).length < CHOICES_PER_PHASE,
+    )
+    if (thin.length > 0) {
+      try {
+        await session.backfillSlots(thin, CHOICES_PER_PHASE)
+      } catch (e) {
+        if (e instanceof UnknownLocalityError) {
+          return { error: e.message, trace: session.trace }
+        }
+        // A failed top-up is not a failed plan. Carry on with what we have.
       }
     }
 

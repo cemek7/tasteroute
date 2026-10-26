@@ -28,7 +28,10 @@ export function TunePanel({
   intent: Intent
   onChange: (next: Intent) => void
 }) {
-  const [open, setOpen] = useState(false)
+  // Open from the start. Hidden behind a link, the options were options
+  // nobody found: the point of asking for vibe, budget and requirements is
+  // that somebody answers them.
+  const [open, setOpen] = useState(true)
   // What the search will actually use, not a midpoint the search ignores.
   const discovery = effectiveDiscovery(intent) ?? 0.5
 
@@ -40,7 +43,7 @@ export function TunePanel({
         className="text-xs underline"
         style={{ color: 'var(--muted)' }}
       >
-        {open ? 'Hide options' : 'Tune this (optional)'}
+        {open ? 'Hide these options' : 'Show more options'}
       </button>
 
       {open && (

@@ -130,11 +130,12 @@ function totalWalk(chosen: Partial<Record<SlotName, Candidate>>): number {
 }
 
 export function buildRoute(input: BuildInput): Route | BuildFailure {
-  const assessment = assessSignal(input.candidates)
   // The shape of the plan comes from the hours the person gave us. A window
   // starting at ten in the morning earns a different plan from one starting
   // at nine at night, and nobody should have to say so twice.
   const phases = phasesFor(input.request.timeWindow)
+  // Judged on the phases this plan has, not on a bar it never asked for.
+  const assessment = assessSignal(input.candidates, phases)
   // A stated ceiling is a requirement, not a preference, so our own code holds
   // it rather than trusting the Qloo filter to survive. It has to: four places
   // in five publish no price level, so `filter.price_level.max` empties slots

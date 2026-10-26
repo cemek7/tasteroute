@@ -41,6 +41,12 @@ const NOT_GOING_OUT = [
   'market_researcher',
   'supermarket',
   'hardware_store',
+  'hunting_preserve',
+  'fitness_center',
+  'wedding_venue',
+  'city_hall',
+  'amusement_park_ride',
+  'banquet_hall',
 ]
 
 function isLodging(c: Candidate): boolean {
@@ -76,8 +82,8 @@ const KIND_MARKERS: { kind: VenueKind; needles: string[]; weight: number }[] = [
   { kind: 'bar', needles: ['lounge', 'nightlife', 'speakeasy', 'pub', 'bar', 'brewery', 'taproom'], weight: 0.9 },
   { kind: 'cafe', needles: ['cafe', 'coffee', 'coffee_shop', 'tea_room', 'brunch', 'breakfast'], weight: 1 },
   { kind: 'dessert', needles: ['bakery', 'patisserie', 'dessert', 'ice_cream', 'juice_bar', 'smoothie'], weight: 0.9 },
-  { kind: 'culture', needles: ['gallery', 'museum', 'bookstore', 'library', 'monument', 'landmark', 'theatre', 'theater'], weight: 0.9 },
-  { kind: 'activity', needles: ['park', 'garden', 'zoo', 'aquarium', 'beach', 'market', 'bowling', 'cinema', 'arcade', 'spa', 'viewpoint'], weight: 0.9 },
+  { kind: 'culture', needles: ['gallery', 'museum', 'bookstore', 'library', 'monument', 'landmark', 'theatre', 'theater', 'cultural_center', 'art_center', 'concert_hall'], weight: 0.9 },
+  { kind: 'activity', needles: ['park', 'garden', 'zoo', 'aquarium', 'beach', 'market', 'bowling', 'cinema', 'arcade', 'spa', 'viewpoint', 'nature_preserve', 'amusement_center'], weight: 0.9 },
   { kind: 'restaurant', needles: ['restaurant', 'grill', 'kitchen', 'steakhouse', 'diner', 'eatery', 'barbecue', 'barbeque', 'bbq'], weight: 1 },
   { kind: 'restaurant', needles: ['cuisine'], weight: 0.8 },
 ]

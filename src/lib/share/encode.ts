@@ -80,7 +80,7 @@ const stopShape = z.object({
     .optional(),
 })
 
-const routeShape = z.object({
+export const routeShape = z.object({
   id: z.string(),
   locality: z.object({
     name: z.string(),

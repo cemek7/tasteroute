@@ -119,7 +119,7 @@ export type AgentSession = {
   requestedTagIds: string[]
   dispatch(name: string, args: Record<string, unknown>): Promise<unknown>
   /** Searches for the named slots with canonical queries. Not model-facing. */
-  backfillSlots(slots: SlotName[]): Promise<void>
+  backfillSlots(slots: SlotName[], until?: number): Promise<void>
   /** Replaces the hard constraints, for the relaxation path. Not model-facing. */
   setConstraints(next: HardConstraints): void
 }
@@ -287,12 +287,13 @@ export function createSession(opts: {
       constraints = next
     },
 
-    async backfillSlots(slots) {
+    async backfillSlots(slots, until = 1) {
       const started = Date.now()
       const filled: string[] = []
 
       for (const slot of slots) {
         for (const query of SLOT_QUERIES[slot]) {
+          if (assessSignal(pool, slots).perSlot[slot] >= until) break
           const tags = await provider.findTags(query)
           if (tags.length === 0) continue
           const res = await provider.suggestPlaces({
@@ -302,7 +303,7 @@ export function createSession(opts: {
             constraints,
           })
           addToPool(res.candidates)
-          if (assessSignal(pool).perSlot[slot] > 0) {
+          if (assessSignal(pool, slots).perSlot[slot] >= until) {
             filled.push(slot)
             break
           }

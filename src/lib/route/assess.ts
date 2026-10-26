@@ -1,7 +1,13 @@
 import type { Candidate, Confidence, SlotName } from '../providers/types'
 import { slotsFor } from './slots'
 
-const SLOTS: SlotName[] = ['open', 'main', 'close']
+/**
+ * The phases a plan is judged against. Defaulted rather than required so
+ * that callers who only care about an evening need not say so — but a
+ * daytime plan must be judged on the phases it actually has, or it is
+ * reported as weak for lacking a bar it never wanted.
+ */
+const CLASSIC_EVENING: SlotName[] = ['open', 'main', 'close']
 const MIN_ELIGIBLE = 6
 const MIN_MEDIAN_AFFINITY = 0.3
 const STRONG_PER_SLOT = 3
@@ -13,19 +19,23 @@ function median(values: number[]): number | null {
   return s.length % 2 === 0 ? (s[mid - 1] + s[mid]) / 2 : s[mid]
 }
 
-export function assessSignal(candidates: Candidate[]): {
+export function assessSignal(
+  candidates: Candidate[],
+  phases: SlotName[] = CLASSIC_EVENING,
+): {
   confidence: Confidence
   perSlot: Record<SlotName, number>
   medianAffinity: number | null
   reason: string
 } {
+  const SLOTS = phases
   const open = candidates.filter((c) => !c.isClosed)
   const perSlot = SLOTS.reduce(
     (acc, slot) => {
       acc[slot] = open.filter((c) => slotsFor(c).includes(slot)).length
       return acc
     },
-    { open: 0, main: 0, close: 0 } as Record<SlotName, number>,
+    {} as Record<SlotName, number>,
   )
 
   const eligible = open.filter((c) => slotsFor(c).length > 0)
