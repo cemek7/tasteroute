@@ -78,7 +78,7 @@ describe('category comes from the most specific genre tag, not the first', () =>
         },
       ],
     })
-    expect(slotsFor(bar)).toEqual(['close'])
+    expect(slotsFor(bar)).toContain('close')
   })
 })
 

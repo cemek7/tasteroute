@@ -70,8 +70,8 @@ const candidateShape = z.object({
 })
 
 const stopShape = z.object({
-  order: z.union([z.literal(1), z.literal(2), z.literal(3)]),
-  slot: z.enum(['open', 'main', 'close']),
+  order: z.number().int().min(1).max(5),
+  slot: z.enum(['morning', 'activity', 'open', 'main', 'afternoon', 'close', 'late']),
   candidate: candidateShape,
   why: z.string(),
   evidence: z.array(evidenceShape),
@@ -89,7 +89,9 @@ const routeShape = z.object({
   }),
   mood: z.string(),
   createdAt: z.string(),
-  stops: z.tuple([stopShape, stopShape, stopShape]),
+  // Three to five. A shared link from an older build carries exactly three,
+  // which still parses.
+  stops: z.array(stopShape).min(3).max(5),
   confidence: z.enum(['strong', 'ok', 'weak']),
   providerKind: z.enum(['qloo', 'fixture']),
   alternatives: z.array(candidateShape).default([]),
@@ -109,13 +111,19 @@ const routeShape = z.object({
   narrativeWindow: z
     .object({ startHour: z.number(), endHour: z.number() })
     .default({ startHour: 18, endHour: 23 }),
+  // Only the phases the plan actually has are present, so every key is
+  // optional. A link from the three-slot build still parses.
   alternativesBySlot: z
     .object({
-      open: z.array(candidateShape),
-      main: z.array(candidateShape),
-      close: z.array(candidateShape),
+      morning: z.array(candidateShape).optional(),
+      activity: z.array(candidateShape).optional(),
+      open: z.array(candidateShape).optional(),
+      main: z.array(candidateShape).optional(),
+      afternoon: z.array(candidateShape).optional(),
+      close: z.array(candidateShape).optional(),
+      late: z.array(candidateShape).optional(),
     })
-    .default({ open: [], main: [], close: [] }),
+    .default({}),
 })
 
 function toBase64Url(json: string): string {

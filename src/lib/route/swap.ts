@@ -3,7 +3,7 @@ import { routeId } from './id'
 import { orderStops } from './order'
 import type { Candidate, Route, SlotName, Stop } from '../providers/types'
 
-const ALTERNATIVES_PER_SLOT = 4
+const ALTERNATIVES_PER_SLOT = 6
 
 /**
  * Swapping is pure and costs nothing: the alternatives were scored when the
@@ -21,11 +21,12 @@ export function swapStop(route: Route, slot: SlotName, candidateId: string): Rou
       acc[s.slot] = s.slot === slot ? replacement : s.candidate
       return acc
     },
-    {} as Record<SlotName, Candidate>,
+    {} as Partial<Record<SlotName, Candidate>>,
   )
 
   const bySlot = new Map(route.stops.map((s) => [s.slot, s]))
 
+  const phases = route.stops.map((st) => st.slot)
   const stops = orderStops(chosen).map((o, i) => {
     const previous = bySlot.get(o.slot)!
     const base: Stop =
@@ -41,10 +42,10 @@ export function swapStop(route: Route, slot: SlotName, candidateId: string): Rou
         : previous
     return {
       ...base,
-      order: (i + 1) as 1 | 2 | 3,
+      order: i + 1,
       walkFromPrev: o.walkFromPrev,
     }
-  }) as [Stop, Stop, Stop]
+  })
 
   // The lists were filtered against the three stops that existed when the
   // route was built. One swap makes that description stale, and a stale list
@@ -52,12 +53,10 @@ export function swapStop(route: Route, slot: SlotName, candidateId: string): Rou
   // call itself a lounge, so a second swap could put two lounges in one
   // evening. Re-apply both invariants against the route as it now stands.
   const byId = new Map(stops.map((st) => [st.candidate.id, st.slot]))
-  const alternativesBySlot = (['open', 'main', 'close'] as const).reduce(
+  const alternativesBySlot = phases.reduce(
     (acc, s) => {
-      const offered =
-        s === slot
-          ? [current.candidate, ...route.alternativesBySlot[s]]
-          : route.alternativesBySlot[s]
+      const forSlot = route.alternativesBySlot[s] ?? []
+      const offered = s === slot ? [current.candidate, ...forSlot] : forSlot
       const usedByOthers = stops
         .filter((st) => st.slot !== s)
         .map((st) => st.candidate.category)
@@ -73,7 +72,7 @@ export function swapStop(route: Route, slot: SlotName, candidateId: string): Rou
         .slice(0, ALTERNATIVES_PER_SLOT)
       return acc
     },
-    { open: [], main: [], close: [] } as Record<SlotName, Candidate[]>,
+    {} as Partial<Record<SlotName, Candidate[]>>,
   )
 
   return {

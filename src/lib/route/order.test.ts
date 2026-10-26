@@ -34,7 +34,7 @@ describe('walkMinutes', () => {
 })
 
 describe('orderStops', () => {
-  const chosen: Record<SlotName, Candidate> = {
+  const chosen: Partial<Record<SlotName, Candidate>> = {
     open: byId('fx-gallery-ember'),
     main: byId('fx-nok'),
     close: byId('fx-bar-slate'),

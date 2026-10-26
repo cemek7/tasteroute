@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { FIXTURE_CANDIDATES } from '../providers/fixture'
+import { slotsFor } from './slots'
 import { buildRoute, type BuildInput } from './build'
 import type { Candidate } from '../providers/types'
 
@@ -92,7 +93,11 @@ describe('buildRoute', () => {
     expect(r.providerKind).toBe('fixture')
   })
 
-  it('surfaces alternatives when confidence is weak', () => {
+  it('hides nothing usable that Qloo returned', () => {
+    // The old guarantee was "show extras when confidence is weak". The real
+    // one is stronger and does not depend on confidence: every place Qloo
+    // returned that could be a stop is reachable — as a stop, as a swap, or
+    // in the extra list. Nothing is silently dropped.
     const thin = [
       ...FIXTURE_CANDIDATES.filter((c) => c.category === 'cafe'),
       ...FIXTURE_CANDIDATES.filter((c) => c.category === 'restaurant').slice(0, 2),
@@ -101,7 +106,41 @@ describe('buildRoute', () => {
     const r = buildRoute(input({ candidates: thin }))
     if ('error' in r) throw new Error('expected a route')
     expect(r.confidence).toBe('weak')
+
+    const visible = new Set([
+      ...r.stops.map((s) => s.candidate.id),
+      ...Object.values(r.alternativesBySlot)
+        .flat()
+        .map((c) => c.id),
+      ...r.alternatives.map((c) => c.id),
+    ])
+    for (const c of thin.filter((x) => slotsFor(x).length > 0)) {
+      expect(visible.has(c.id), c.id).toBe(true)
+    }
+  })
+
+  it('fills the extra list once the pool outgrows the swap lists', () => {
+    // 6 swaps per phase times 3 phases, so a pool of 40 restaurants cannot
+    // fit in the swap lists and the surplus has to go somewhere visible.
+    const many = [
+      ...FIXTURE_CANDIDATES,
+      ...Array.from({ length: 40 }, (_, i) => ({
+        ...FIXTURE_CANDIDATES.find((c) => c.category === 'restaurant')!,
+        id: `extra-rest-${i}`,
+        name: `Extra ${i}`,
+        affinity: 0.4,
+      })),
+    ]
+    const r = buildRoute(input({ candidates: many }))
+    if ('error' in r) throw new Error('expected a route')
     expect(r.alternatives.length).toBeGreaterThan(0)
+    const offered = new Set(
+      Object.values(r.alternativesBySlot)
+        .flat()
+        .map((c) => c.id),
+    )
+    // The extra list is additional, not a repeat of the swap lists.
+    for (const c of r.alternatives) expect(offered.has(c.id)).toBe(false)
   })
 
   it('leaves alternatives empty when confidence is strong', () => {

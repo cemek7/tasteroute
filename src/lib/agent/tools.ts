@@ -94,15 +94,21 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 ]
 
 /**
- * Plain-language queries that reliably find a venue for each slot. Used only
- * when the model's own taste search left a slot empty: a three-stop route
- * needs all three kinds of place, and that is our guarantee to make, not the
+ * Plain-language queries that reliably find a venue for each phase. Used
+ * only when the model's own taste search left a phase empty: a plan needs a
+ * place for every part of it, and that is our guarantee to make, not the
  * model's.
  */
 const SLOT_QUERIES: Record<SlotName, string[]> = {
+  morning: ['cafe', 'coffee', 'bakery', 'breakfast'],
+  activity: ['museum', 'gallery', 'park', 'market'],
   open: ['cafe', 'coffee', 'bakery'],
   main: ['restaurant', 'cuisine'],
+  afternoon: ['park', 'gallery', 'market', 'cafe'],
   close: ['cocktail bar', 'lounge', 'bar'],
+  // `night_club`, `club` and `dancing` are the genres the live host returns
+  // for these; "nightclub" as one word returns nothing useful.
+  late: ['night club', 'club', 'dancing', 'lounge'],
 }
 
 export type AgentSession = {

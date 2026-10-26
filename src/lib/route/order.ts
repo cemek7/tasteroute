@@ -1,3 +1,4 @@
+import { CLOCK } from './phases'
 import type { Candidate, SlotName } from '../providers/types'
 
 type Point = { lat: number | null; lng: number | null }
@@ -27,24 +28,40 @@ export type OrderedStop = {
 }
 
 /**
- * The close slot is always last, so only the open/main pair can swap.
- * With two permutations this is exact, not heuristic. Legs between stops
- * without coordinates count as zero for comparison and are omitted from
- * the output rather than reported as NaN.
+ * Stops come out in the plan's chronological order, which `route/phases.ts`
+ * owns. One exception, kept because it was measured to matter: in the
+ * classic evening the open and main stops are interchangeable in time, so
+ * both orders are tried and the shorter walk wins. With two permutations
+ * that is exact, not heuristic.
+ *
+ * Anywhere else the clock is not negotiable — breakfast does not go after
+ * lunch to save four hundred metres — so chronological order stands.
+ *
+ * Legs between stops without coordinates count as zero for comparison and
+ * are omitted from the output rather than reported as NaN.
  */
-export function orderStops(chosen: Record<SlotName, Candidate>): OrderedStop[] {
-  const permutations: SlotName[][] = [
-    ['open', 'main', 'close'],
-    ['main', 'open', 'close'],
-  ]
+export function orderStops(chosen: Partial<Record<SlotName, Candidate>>): OrderedStop[] {
+  const present = (CLOCK as SlotName[]).filter((s) => chosen[s] !== undefined)
+  const isClassicEvening =
+    present.length === 3 &&
+    present[0] === 'open' &&
+    present[1] === 'main' &&
+    present[2] === 'close'
+
+  const permutations: SlotName[][] = isClassicEvening
+    ? [
+        ['open', 'main', 'close'],
+        ['main', 'open', 'close'],
+      ]
+    : [present]
+
+  const at = (slot: SlotName): Point => {
+    const c = chosen[slot]
+    return { lat: c?.lat ?? null, lng: c?.lng ?? null }
+  }
 
   const legs = (order: SlotName[]) =>
-    order.slice(1).map((slot, i) =>
-      haversineMetres(
-        { lat: chosen[order[i]].lat, lng: chosen[order[i]].lng },
-        { lat: chosen[slot].lat, lng: chosen[slot].lng },
-      ),
-    )
+    order.slice(1).map((slot, i) => haversineMetres(at(order[i]), at(slot)))
 
   const sum = (o: SlotName[]): number =>
     legs(o).reduce<number>((total, leg) => total + (leg ?? 0), 0)
@@ -57,7 +74,7 @@ export function orderStops(chosen: Record<SlotName, Candidate>): OrderedStop[] {
     const walkable = metres != null && Number.isFinite(metres)
     return {
       slot,
-      candidate: chosen[slot],
+      candidate: chosen[slot] as Candidate,
       ...(walkable
         ? { walkFromPrev: { metres: Math.round(metres), minutes: walkMinutes(metres) } }
         : {}),

@@ -14,6 +14,7 @@ import { buildNarrative } from './narrative'
 import { isOpenDuring } from './open-tonight'
 import { routeId } from './id'
 import { orderStops } from './order'
+import { MIN_STOPS, phasesFor } from './phases'
 import { scoreCandidate, type ScoreContext } from './score'
 import { slotsFor } from './slots'
 import { buildWhy } from './why'
@@ -36,8 +37,14 @@ export type BuildFailure = {
   reason: string
 }
 
-/** main first: it anchors the evening, so it gets the best of the pool. */
-const FILL_ORDER: SlotName[] = ['main', 'close', 'open']
+/**
+ * main first: it anchors the plan geographically, so it gets the best of the
+ * pool and everything else clusters around it. The rest follow in the plan's
+ * own chronological order.
+ */
+function fillOrder(phases: SlotName[]): SlotName[] {
+  return ['main', ...phases.filter((p) => p !== 'main')]
+}
 
 /** How many main-slot candidates to try as the anchor. */
 const ANCHOR_CANDIDATES = 5
@@ -46,29 +53,31 @@ const ANCHOR_CANDIDATES = 5
 const WALK_COST_PER_KM = 0.05
 
 type Attempt = {
-  chosen: Record<SlotName, Candidate>
+  chosen: Partial<Record<SlotName, Candidate>>
   takenIds: Set<string>
   totalScore: number
   unfilledSlots: SlotName[]
 }
 
 /**
- * Fill the three slots, clustering the second and third around the given
- * anchor. Returns what it managed, so the caller can compare attempts.
+ * Fill the plan's phases, clustering the rest around the given anchor.
+ * Returns what it managed, so the caller can compare attempts — and so a
+ * phase nothing fits can be dropped rather than failing the whole plan.
  */
 function fillFrom(
   pool: Candidate[],
   anchorCandidate: Candidate | undefined,
   input: BuildInput,
+  phases: SlotName[],
 ): Attempt {
-  const chosen = {} as Record<SlotName, Candidate>
+  const chosen: Partial<Record<SlotName, Candidate>> = {}
   const usedCategories: string[] = []
   const takenIds = new Set<string>()
   const unfilledSlots: SlotName[] = []
   let totalScore = 0
   let anchor: { lat: number | null; lng: number | null } | undefined
 
-  for (const slot of FILL_ORDER) {
+  for (const slot of fillOrder(phases)) {
     const ctx: ScoreContext = {
       requestedTagIds: input.requestedTagIds,
       timeWindow: input.request.timeWindow,
@@ -113,7 +122,7 @@ function fillFrom(
  */
 const UNKNOWN_LEG_M = 3000
 
-function totalWalk(chosen: Record<SlotName, Candidate>): number {
+function totalWalk(chosen: Partial<Record<SlotName, Candidate>>): number {
   const ordered = orderStops(chosen)
   return ordered
     .slice(1)
@@ -122,6 +131,10 @@ function totalWalk(chosen: Record<SlotName, Candidate>): number {
 
 export function buildRoute(input: BuildInput): Route | BuildFailure {
   const assessment = assessSignal(input.candidates)
+  // The shape of the plan comes from the hours the person gave us. A window
+  // starting at ten in the morning earns a different plan from one starting
+  // at nine at night, and nobody should have to say so twice.
+  const phases = phasesFor(input.request.timeWindow)
   // A stated ceiling is a requirement, not a preference, so our own code holds
   // it rather than trusting the Qloo filter to survive. It has to: four places
   // in five publish no price level, so `filter.price_level.max` empties slots
@@ -165,12 +178,18 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
   // failure names the slots that are genuinely empty rather than all three.
   const attempts =
     anchorOptions.length > 0
-      ? anchorOptions.map((anchorCandidate) => fillFrom(pool, anchorCandidate, input))
-      : [fillFrom(pool, undefined, input)]
+      ? anchorOptions.map((anchorCandidate) => fillFrom(pool, anchorCandidate, input, phases))
+      : [fillFrom(pool, undefined, input, phases)]
 
-  const complete = attempts.filter((a) => a.unfilledSlots.length === 0)
+  // A phase nothing fits is dropped, not fatal. Asking for a club at two in
+  // the morning in a city where Qloo lists none should still get you dinner
+  // and a bar — but main is the anchor, so a plan without it is not a plan.
+  const stopsIn = (a: Attempt) => phases.length - a.unfilledSlots.length
+  const usable = attempts.filter(
+    (a) => a.chosen.main !== undefined && stopsIn(a) >= MIN_STOPS,
+  )
 
-  if (complete.length === 0) {
+  if (usable.length === 0) {
     // Report the attempt that got furthest, so the message names a real gap.
     const best = attempts.reduce((a, b) =>
       b.unfilledSlots.length < a.unfilledSlots.length ? b : a,
@@ -178,22 +197,26 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
     return {
       error: 'insufficient',
       unfilledSlots: best.unfilledSlots,
-      reason: `Could not fill the ${best.unfilledSlots.join(' or ')} part of the evening from what Qloo returned.`,
+      reason: `Could not fill the ${best.unfilledSlots.join(' or ')} part of the plan from what Qloo returned.`,
     }
   }
 
   // Price the walking in, then take the best whole evening. Ties break on the
   // stop ids so the same pool always yields the same route.
-  const best = complete.reduce((a, b) => {
+  const best = usable.reduce((a, b) => {
+    // A fuller plan beats a better-scoring shorter one: somebody who asked
+    // for a whole day wants the whole day.
+    if (stopsIn(b) !== stopsIn(a)) return stopsIn(b) > stopsIn(a) ? b : a
     const value = (x: Attempt) =>
       x.totalScore - (totalWalk(x.chosen) / 1000) * WALK_COST_PER_KM
     const diff = value(b) - value(a)
     if (diff > 0) return b
     if (diff < 0) return a
-    return b.chosen.main.id.localeCompare(a.chosen.main.id) < 0 ? b : a
+    return b.chosen.main!.id.localeCompare(a.chosen.main!.id) < 0 ? b : a
   })
 
   const { chosen, takenIds } = best
+  const filledPhases = phases.filter((p) => chosen[p] !== undefined)
 
   const ordered = orderStops(chosen)
   const whyCtx = {
@@ -220,14 +243,14 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
     const { why, evidence } = buildWhy(o.candidate, whyCtx)
     const candidate = withOpenTonight(o.candidate)
     return {
-      order: (i + 1) as 1 | 2 | 3,
+      order: i + 1,
       slot: o.slot,
       candidate,
       why,
       evidence,
       ...(o.walkFromPrev ? { walkFromPrev: o.walkFromPrev } : {}),
     } satisfies Stop
-  }) as [Stop, Stop, Stop]
+  })
 
   // A route that could not honour a stated need is not a confident route,
   // whatever the taste match looks like.
@@ -243,18 +266,18 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
   // Runners-up, scored when the route was built. Filtered here so the client
   // cannot assemble an invalid route: no place already used, and no category
   // another stop holds.
-  const ALTERNATIVES_PER_SLOT = 4
+  const ALTERNATIVES_PER_SLOT = 6
   // main is filled first, so it is the anchor the rest of the route clustered
   // around. Alternatives are scored against the same point.
   const anchor =
-    chosen.main.lat != null && chosen.main.lng != null
-      ? { lat: chosen.main.lat, lng: chosen.main.lng }
+    chosen.main!.lat != null && chosen.main!.lng != null
+      ? { lat: chosen.main!.lat, lng: chosen.main!.lng }
       : undefined
-  const alternativesBySlot = (['open', 'main', 'close'] as const).reduce(
+  const alternativesBySlot = filledPhases.reduce(
     (acc, slot) => {
-      const usedByOthers = (['open', 'main', 'close'] as const)
+      const usedByOthers = filledPhases
         .filter((s) => s !== slot)
-        .map((s) => chosen[s].category)
+        .map((s) => chosen[s]?.category)
         .filter((c): c is string => !!c)
       acc[slot] = pool
         .filter(
@@ -277,13 +300,34 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
         .map((e) => withOpenTonight(e.c))
       return acc
     },
-    { open: [], main: [], close: [] } as Record<SlotName, Candidate[]>,
+    {} as Partial<Record<SlotName, Candidate[]>>,
   )
 
-  const alternatives =
-    confidence === 'weak'
-      ? pool.filter((c) => !takenIds.has(c.id)).slice(0, 6)
-      : []
+  // Everything else Qloo returned that is a going-out place at all, scored
+  // and shown. A plan is three to five stops; the pool behind it is often
+  // forty, and hiding that made the app look like it had found less than it
+  // had. Places already offered as a swap are left out, so the list is
+  // additional rather than a repeat.
+  const MORE_PLACES = 12
+  const offered = new Set(
+    Object.values(alternativesBySlot)
+      .flat()
+      .map((c) => c.id),
+  )
+  const alternatives = pool
+    .filter((c) => !takenIds.has(c.id) && !offered.has(c.id) && slotsFor(c).length > 0)
+    .map((c) => ({
+      c,
+      score: scoreCandidate(c, 'main', {
+        requestedTagIds: input.requestedTagIds,
+        timeWindow: input.request.timeWindow,
+        usedCategories: [],
+        anchor,
+      }),
+    }))
+    .sort((a, b) => b.score - a.score || a.c.id.localeCompare(b.c.id))
+    .slice(0, MORE_PLACES)
+    .map((e) => withOpenTonight(e.c))
 
   return {
     id: routeId(
@@ -298,7 +342,9 @@ export function buildRoute(input: BuildInput): Route | BuildFailure {
     alternatives,
     trace: input.trace,
     providerKind: input.providerKind,
-    unfilledSlots: [],
+    // The phases this plan asked for and could not fill. The UI says so
+    // rather than quietly presenting a shorter plan as the whole answer.
+    unfilledSlots: phases.filter((p) => chosen[p] === undefined),
     intentEcho: input.intentEcho,
     narrative,
     narrativeWindow: input.request.timeWindow,

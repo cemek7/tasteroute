@@ -8,7 +8,20 @@ import type {
   VibeId,
 } from '../intent/vocabulary'
 
-export type SlotName = 'open' | 'main' | 'close'
+/**
+ * A part of a plan, not a time of day. `main` is the sit-down meal the rest
+ * clusters around — lunch in a daytime plan, dinner in an evening one. The
+ * chronological order lives in `route/phases.ts`, which is the only place
+ * that decides which of these a given time window earns.
+ */
+export type SlotName =
+  | 'morning'
+  | 'activity'
+  | 'open'
+  | 'main'
+  | 'afternoon'
+  | 'close'
+  | 'late'
 
 /**
  * Everything optional a person can tell us. Split from the required three so
@@ -191,7 +204,8 @@ export type Evidence = {
 }
 
 export type Stop = {
-  order: 1 | 2 | 3
+  /** 1-based position in the plan. A plan has three to five stops. */
+  order: number
   slot: SlotName
   candidate: Candidate
   why: string
@@ -214,7 +228,8 @@ export type Route = {
   locality: Locality
   mood: string
   createdAt: string
-  stops: [Stop, Stop, Stop]
+  /** Three to five, in chronological order. */
+  stops: Stop[]
   confidence: Confidence
   alternatives: Candidate[]
   trace: TraceEntry[]
@@ -226,6 +241,7 @@ export type Route = {
   narrative: { line: string; evidence: Evidence[] }
   /** Kept so a swap can rebuild the narrative without the original request. */
   narrativeWindow: { startHour: number; endHour: number }
-  /** Scored runners-up per slot, already filtered so a swap stays valid. */
-  alternativesBySlot: Record<SlotName, Candidate[]>
+  /** Scored runners-up per slot, already filtered so a swap stays valid.
+   *  Only the phases this plan actually has are present. */
+  alternativesBySlot: Partial<Record<SlotName, Candidate[]>>
 }

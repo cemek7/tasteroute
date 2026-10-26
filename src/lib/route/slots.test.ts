@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { FIXTURE_CANDIDATES } from '../providers/fixture'
-import { slotFit, slotsFor } from './slots'
+import { CLOCK } from './phases'
+import { kindOf, slotFit, slotsFor } from './slots'
 import type { Candidate } from '../providers/types'
 
 const byId = (id: string): Candidate => {
@@ -11,7 +12,7 @@ const byId = (id: string): Candidate => {
 
 describe('slotsFor', () => {
   it('puts a cafe in the open slot', () => {
-    expect(slotsFor(byId('fx-cafe-neo'))).toEqual(['open'])
+    expect(slotsFor(byId('fx-cafe-neo'))).toContain('open')
   })
 
   it('puts a restaurant in the main slot', () => {
@@ -83,9 +84,9 @@ describe('only going-out venues get a slot', () => {
   })
 
   it('accepts the going-out kinds', () => {
-    expect(slotsFor(withGenre('urn:tag:genre:place:cafe'))).toEqual(['open'])
+    expect(slotsFor(withGenre('urn:tag:genre:place:cafe'))).toContain('open')
     expect(slotsFor(withGenre('urn:tag:genre:place:restaurant'))).toEqual(['main'])
-    expect(slotsFor(withGenre('urn:tag:genre:place:bar:cocktail_bar'))).toEqual(['close'])
+    expect(slotsFor(withGenre('urn:tag:genre:place:bar:cocktail_bar'))).toContain('close')
   })
 
   it('still reads a nested barbecue genre as dinner', () => {
@@ -93,6 +94,72 @@ describe('only going-out venues get a slot', () => {
   })
 
   it('falls back to category and tags when primary_genre is absent', () => {
-    expect(slotsFor(withGenre(null, 'cafe'))).toEqual(['open'])
+    expect(slotsFor(withGenre(null, 'cafe'))).toContain('open')
+  })
+})
+
+describe('venue kinds, against the genres Qloo actually publishes', () => {
+  const withGenre = (id: string | null, category: string | null = null): Candidate => ({
+    ...byId('fx-cafe-neo'),
+    id: `k-${id}`,
+    name: 'Somewhere',
+    category,
+    primaryGenre: id,
+    tags: [],
+  })
+
+  it('reads a night club as a club, which only the late phase takes', () => {
+    const c = withGenre('urn:tag:genre:place:night_club')
+    expect(kindOf(c)?.kind).toBe('club')
+    expect(slotsFor(c)).toContain('late')
+    expect(slotsFor(c)).not.toContain('main')
+  })
+
+  it('reads a bare club and a dancing venue as clubs too', () => {
+    expect(kindOf(withGenre('urn:tag:genre:place:club'))?.kind).toBe('club')
+    expect(kindOf(withGenre('urn:tag:genre:place:dancing'))?.kind).toBe('club')
+  })
+
+  // These are real Qloo genres, not hypotheticals: a search for "club"
+  // returns sports_club and soccer_club, and "park" returns park_ride.
+  it('refuses the clubs that are not nightlife', () => {
+    for (const id of ['sports_club', 'soccer_club', 'golf_club', 'health_club']) {
+      expect(slotsFor(withGenre(`urn:tag:genre:place:${id}`)), id).toEqual([])
+    }
+  })
+
+  it('refuses a park and ride, which a search for parks returns', () => {
+    expect(slotsFor(withGenre('urn:tag:genre:place:park_ride'))).toEqual([])
+  })
+
+  it('refuses a market researcher, which a search for markets returns', () => {
+    expect(slotsFor(withGenre('urn:tag:genre:place:market_researcher'))).toEqual([])
+  })
+
+  it('takes a park, a museum and a market as daytime things to do', () => {
+    for (const id of ['park', 'museum', 'market']) {
+      const slots = slotsFor(withGenre(`urn:tag:genre:place:${id}`))
+      expect(slots, id).toContain('activity')
+    }
+  })
+
+  it('lets a cafe serve the morning or the start of an evening', () => {
+    const slots = slotsFor(withGenre('urn:tag:genre:place:cafe'))
+    expect(slots).toContain('morning')
+    expect(slots).toContain('open')
+  })
+
+  it('keeps a restaurant out of the late phase', () => {
+    expect(slotsFor(withGenre('urn:tag:genre:place:restaurant'))).not.toContain('late')
+  })
+
+  it('still reads a nested night club under restaurant as a club', () => {
+    expect(kindOf(withGenre('urn:tag:genre:place:restaurant:night_club'))?.kind).toBe('club')
+  })
+
+  it('never scores a fit above one, for every phase', () => {
+    for (const c of FIXTURE_CANDIDATES) {
+      for (const s of CLOCK) expect(slotFit(c, s)).toBeLessThanOrEqual(1)
+    }
   })
 })

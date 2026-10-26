@@ -27,7 +27,7 @@ const route = (): Route => {
 }
 
 const slotWithOptions = (r: Route): SlotName =>
-  (['open', 'main', 'close'] as const).find((s) => r.alternativesBySlot[s].length > 0)!
+  (['open', 'main', 'close'] as const).find((s) => r.alternativesBySlot[s]!.length > 0)!
 
 describe('alternativesBySlot', () => {
   it('offers runners-up for at least one slot', () => {
@@ -47,7 +47,7 @@ describe('alternativesBySlot', () => {
     const r = route()
     for (const slot of ['open', 'main', 'close'] as const) {
       const others = r.stops.filter((s) => s.slot !== slot).map((s) => s.candidate.category)
-      for (const c of r.alternativesBySlot[slot]) expect(others).not.toContain(c.category)
+      for (const c of r.alternativesBySlot[slot]!) expect(others).not.toContain(c.category)
     }
   })
 
@@ -63,7 +63,7 @@ describe('swapStop', () => {
   it('replaces the named stop and keeps three stops', () => {
     const r = route()
     const slot = slotWithOptions(r)
-    const replacement = r.alternativesBySlot[slot][0]
+    const replacement = r.alternativesBySlot[slot]![0]
     const next = swapStop(r, slot, replacement.id)
     expect(next.stops).toHaveLength(3)
     expect(next.stops.find((s) => s.slot === slot)?.candidate.id).toBe(replacement.id)
@@ -72,20 +72,20 @@ describe('swapStop', () => {
   it('keeps the close slot last after a swap', () => {
     const r = route()
     const slot = slotWithOptions(r)
-    expect(swapStop(r, slot, r.alternativesBySlot[slot][0].id).stops.at(-1)?.slot).toBe('close')
+    expect(swapStop(r, slot, r.alternativesBySlot[slot]![0].id).stops.at(-1)?.slot).toBe('close')
   })
 
   it('renumbers the stops 1, 2, 3', () => {
     const r = route()
     const slot = slotWithOptions(r)
-    const next = swapStop(r, slot, r.alternativesBySlot[slot][0].id)
+    const next = swapStop(r, slot, r.alternativesBySlot[slot]![0].id)
     expect(next.stops.map((s) => s.order)).toEqual([1, 2, 3])
   })
 
   it('rebuilds the narrative for the new set', () => {
     const r = route()
     const slot = slotWithOptions(r)
-    const next = swapStop(r, slot, r.alternativesBySlot[slot][0].id)
+    const next = swapStop(r, slot, r.alternativesBySlot[slot]![0].id)
     expect(typeof next.narrative.line).toBe('string')
     expect(next.narrative.line.endsWith('.')).toBe(true)
   })
@@ -99,23 +99,23 @@ describe('swapStop', () => {
     const r = route()
     const slot = slotWithOptions(r)
     const original = r.stops.find((s) => s.slot === slot)!.candidate.id
-    const next = swapStop(r, slot, r.alternativesBySlot[slot][0].id)
-    expect(next.alternativesBySlot[slot].map((c) => c.id)).toContain(original)
+    const next = swapStop(r, slot, r.alternativesBySlot[slot]![0].id)
+    expect(next.alternativesBySlot[slot]!.map((c) => c.id)).toContain(original)
   })
 
   it('does not offer the newly placed candidate as its own alternative', () => {
     const r = route()
     const slot = slotWithOptions(r)
-    const chosen = r.alternativesBySlot[slot][0].id
+    const chosen = r.alternativesBySlot[slot]![0].id
     const next = swapStop(r, slot, chosen)
-    expect(next.alternativesBySlot[slot].map((c) => c.id)).not.toContain(chosen)
+    expect(next.alternativesBySlot[slot]!.map((c) => c.id)).not.toContain(chosen)
   })
 
   it('gives the new stop a reason rather than inheriting the old one', () => {
     const r = route()
     const slot = slotWithOptions(r)
     const oldWhy = r.stops.find((s) => s.slot === slot)!.why
-    const next = swapStop(r, slot, r.alternativesBySlot[slot][0].id)
+    const next = swapStop(r, slot, r.alternativesBySlot[slot]![0].id)
     expect(next.stops.find((s) => s.slot === slot)?.why).not.toBe(oldWhy)
   })
 })
@@ -161,7 +161,7 @@ describe('alternatives carry the same opening-hours verdict as the stops', () =>
   it('keeps the warning on a stop that arrived by a swap', () => {
     const r = routeWithHours()
     const slot = slotWithOptions(r)
-    const next = swapStop(r, slot, r.alternativesBySlot[slot][0].id)
+    const next = swapStop(r, slot, r.alternativesBySlot[slot]![0].id)
     expect(next.stops.find((s) => s.slot === slot)?.candidate.detail?.openTonight).toBe(false)
   })
 })
@@ -239,7 +239,7 @@ describe('the alternatives still describe the route after a swap', () => {
     const one = swapStop(crafted(), 'close', 'lounge-close')
     for (const slot of ['open', 'main', 'close'] as const) {
       const others = one.stops.filter((s) => s.slot !== slot).map((s) => s.candidate.category)
-      for (const c of one.alternativesBySlot[slot]) expect(others).not.toContain(c.category)
+      for (const c of one.alternativesBySlot[slot]!) expect(others).not.toContain(c.category)
     }
   })
 
@@ -253,16 +253,16 @@ describe('the alternatives still describe the route after a swap', () => {
 
   it('still offers the place that was swapped out', () => {
     const one = swapStop(crafted(), 'close', 'lounge-close')
-    expect(one.alternativesBySlot.close.map((c) => c.id)).toContain('bar-1')
+    expect(one.alternativesBySlot.close!.map((c) => c.id)).toContain('bar-1')
   })
 
   it('leaves the fixture route own invariants intact', () => {
     const r = route()
     const slot = slotWithOptions(r)
-    const next = swapStop(r, slot, r.alternativesBySlot[slot][0].id)
+    const next = swapStop(r, slot, r.alternativesBySlot[slot]![0].id)
     for (const s of ['open', 'main', 'close'] as const) {
       const others = next.stops.filter((x) => x.slot !== s).map((x) => x.candidate.category)
-      for (const c of next.alternativesBySlot[s]) expect(others).not.toContain(c.category)
+      for (const c of next.alternativesBySlot[s]!) expect(others).not.toContain(c.category)
     }
   })
 })
@@ -271,14 +271,14 @@ describe('a swapped route is a different route, so saving it does not overwrite'
   it('takes a new id when a stop changes', () => {
     const r = route()
     const slot = slotWithOptions(r)
-    const next = swapStop(r, slot, r.alternativesBySlot[slot][0].id)
+    const next = swapStop(r, slot, r.alternativesBySlot[slot]![0].id)
     expect(next.id).not.toBe(r.id)
   })
 
   it('builds that id by the same rule buildRoute uses', () => {
     const r = route()
     const slot = slotWithOptions(r)
-    const next = swapStop(r, slot, r.alternativesBySlot[slot][0].id)
+    const next = swapStop(r, slot, r.alternativesBySlot[slot]![0].id)
     expect(next.id).toBe(
       routeId(
         next.locality.name,

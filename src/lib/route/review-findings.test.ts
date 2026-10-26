@@ -63,13 +63,20 @@ describe('a substring must not decide a venue kind', () => {
   })
 
   it('still puts a real bar in the nightcap slot', () => {
-    expect(slotsFor(mk({ id: 'bar', category: 'bar' }))).toEqual(['close'])
-    expect(slotsFor(mk({ id: 'cb', category: 'cocktail_bar' }))).toEqual(['close'])
-    expect(slotsFor(mk({ id: 'wb', category: 'wine_bar' }))).toEqual(['close'])
+    // A bar serves the drinks phase, and will also do for a late one. What
+    // it must never be is dinner.
+    for (const category of ['bar', 'cocktail_bar', 'wine_bar']) {
+      const slots = slotsFor(mk({ id: category, category }))
+      expect(slots, category).toContain('close')
+      expect(slots, category).not.toContain('main')
+    }
   })
 
-  it('still puts a nightclub and a supper club where they belong', () => {
-    expect(slotsFor(mk({ id: 'nc', category: 'nightclub' }))).toEqual(['close'])
+  it('puts a nightclub in the late phase and not in the drinks phase', () => {
+    // This is the point of having a late phase at all: a club at 7pm is the
+    // wrong answer, and a club is not a substitute for a bar.
+    const slots = slotsFor(mk({ id: 'nc', category: 'nightclub' }))
+    expect(slots).toEqual(['late'])
   })
 })
 

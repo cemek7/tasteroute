@@ -12,7 +12,7 @@ import type { Evidence, Stop } from '../providers/types'
  * simply left out — which is why the line is short when the data is thin.
  */
 export function buildNarrative(
-  stops: [Stop, Stop, Stop],
+  stops: Stop[],
   window: TimeWindow,
 ): { line: string; evidence: Evidence[] } {
   const clauses: string[] = []
@@ -20,20 +20,25 @@ export function buildNarrative(
 
   const kind = (s: Stop) => s.candidate.category?.replace(/_/g, ' ') ?? null
   const first = kind(stops[0])
-  const last = kind(stops[2])
+  const last = kind(stops[stops.length - 1])
 
   const areas = stops
     .map((s) => s.candidate.detail?.neighborhood)
     .filter((n): n is string => !!n)
-  const shared = areas.length === 3 && new Set(areas).size === 1 ? areas[0] : null
+  const shared =
+    areas.length === stops.length && new Set(areas).size === 1 ? areas[0] : null
+
+  // A plan is three to five stops, so the count is worth saying in words.
+  const COUNT_WORD = ['', 'One', 'Two', 'Three', 'Four', 'Five']
+  const count = COUNT_WORD[stops.length] ?? `${stops.length}`
 
   if (first) {
     clauses.push(shared ? `Starts at a ${first} in ${shared}` : `Starts at a ${first}`)
     evidence.push({ kind: 'tag', label: `opens at a ${first}`, source: 'qloo' })
   } else if (shared) {
-    clauses.push(`Three stops in ${shared}`)
+    clauses.push(`${count} stops in ${shared}`)
   } else {
-    clauses.push('Three stops')
+    clauses.push(`${count} stops`)
   }
 
   if (last && last !== first) {
@@ -47,7 +52,9 @@ export function buildNarrative(
   }
 
   // Only worth saying when the night itself runs past midnight.
-  const runsLate = window.endHour > 24 && isOpenDuring(stops[2].candidate.hours, window) === true
+  const runsLate =
+    window.endHour > 24 &&
+    isOpenDuring(stops[stops.length - 1].candidate.hours, window) === true
   if (runsLate) {
     clauses.push('and the last one is still open past midnight')
     evidence.push({ kind: 'descriptor', label: 'open past midnight', source: 'qloo' })

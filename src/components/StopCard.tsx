@@ -4,9 +4,13 @@ import { useState } from 'react'
 import type { Candidate, Stop } from '@/lib/providers/types'
 
 const SLOT_LABEL: Record<Stop['slot'], string> = {
+  morning: 'Morning',
+  activity: 'Something to do',
   open: 'Start',
   main: 'Main',
-  close: 'Finish',
+  afternoon: 'Afternoon',
+  close: 'Drinks',
+  late: 'Late',
 }
 
 const EVIDENCE_LABEL: Record<Stop['evidence'][number]['kind'], string> = {
