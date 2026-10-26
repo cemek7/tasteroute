@@ -7,11 +7,10 @@ talking head.
 ## Before you record
 
 - Open https://tasteroute-sepia.vercel.app in a fresh window, phone width.
-- Clear site data, so "forget my preferences" is not needed on camera and the
-  Tune panel starts empty.
-- Have a second tab already holding a planned route for Abuja, in case a live
-  call is slow. Do not cut to it silently — see "On the waits" below.
+- Clear site data, so the options panel starts empty.
 - Check the OpenRouter key has credit. A failed plan on camera is a retake.
+- Plan each of the two routes once before recording, so Qloo's results are
+  warm and you know what is going to come back.
 
 ## On the waits
 
@@ -23,46 +22,47 @@ the video; one who suspects a cut does not.
 
 ## Script
 
-**0:00 – 0:18 — The problem, in one breath**
+**0:00 – 0:16 — What it is**
 
-> Pick a city, say what kind of night you want, and TasteRoute plans one
-> evening: three places, in an order that works, with the reason each one is
-> there. It is built on Qloo's taste graph — not on reviews, and not on
-> whatever is nearest.
+> Give TasteRoute a city, a mood and a pair of hours, and it plans the whole
+> stretch: three to five places, in order, with the reason each one is there.
+> It runs on Qloo's taste graph — not on reviews, and not on whatever is
+> nearest.
 
-*Shot: the empty form. City, mood, the time window.*
+*Shot: the form, with the options panel already visible below it.*
 
-**0:18 – 0:40 — The vague ask, and the question it earns**
+**0:16 – 0:38 — The hours decide the shape**
 
-> I will be deliberately vague.
+> The hours are not just a filter. They decide what kind of plan this is.
 
-*Type city `Abuja`, mood `something nice`. Leave the time window at 18:00 to
-23:00. Press "Plan my evening".*
+*Type city `Lagos`, mood `a whole day out, museums and good food`. Set the
+window to 10:00–23:00.*
 
-> It does not guess. It decides it has not been told enough, and asks one
-> question — with its own reason for asking.
+> Ten in the morning until eleven at night is a day, not an evening. So it
+> plans breakfast, something to do, the main meal, an afternoon, and a drink
+> at the end. Nine at night until three in the morning would get a club
+> instead.
 
-*Shot: the clarifying question with its options and the "because" line. Read
-the reason aloud, whatever it says. Then click one option.*
+*Shot: the time picker as you set it.*
 
-**0:40 – 1:10 — The route**
+**0:38 – 1:05 — The plan, on its own page**
 
-*Let it plan. Speed the wait up, labelled.*
+*Press "Plan my evening". Speed the wait up, labelled. The plan opens on its
+own page.*
 
-> Three stops. A place to start, the main event, somewhere to finish. Each
-> card says what it is, how far the walk is, and why Qloo put it there —
-> which tags matched, which affinity score, and whether Qloo's own
-> explainability block supports it.
+> Five stops. Each card says what it is, how far the walk is, and why Qloo
+> put it there — which tags matched, which affinity score, and whether Qloo's
+> own explainability block supports it.
 
-*Shot: scroll the three stop cards slowly. Pause on the "why" line and on the
-evidence chips of the middle stop.*
+*Shot: scroll the stop cards slowly. Pause on the "why" line and the
+evidence chips of the middle stop. Point out the walking total in the
+opening sentence.*
 
-**1:10 – 1:40 — Requirements are not preferences**
+**1:05 – 1:30 — Requirements are not preferences**
 
 > This is the design decision the whole thing turns on.
 
-*Open "Tune this (optional)". Set a dietary requirement — halal — and a
-budget of two.*
+*Go back, set a dietary requirement — halal — and a budget of two.*
 
 > A vibe is a preference. The model can weigh it against a better taste
 > match. A dietary need is not a preference, and neither is a wheelchair
@@ -72,42 +72,55 @@ budget of two.*
 
 *Shot: the Must-have chips and the budget row.*
 
-**1:40 – 2:05 — Replan, and the honesty panel**
+**1:30 – 1:55 — What it did with what you asked**
 
-*Press "Plan my evening" again. Speed the wait up, labelled.*
+*Plan again. Speed the wait up, labelled.*
 
 > Up top it tells you what it actually did with what you asked for — and,
-> when it has to, what it could not apply and why. If Qloo has no halal tag
-> for a place, it says the requirement could not be applied rather than
-> quietly serving you something that does not meet it.
+> when it has to, what it could not apply and why. If Qloo publishes no halal
+> tag for a place, it says the requirement could not be applied rather than
+> quietly serving you something that does not meet it. If nothing fitted one
+> part of the day, it says that too, instead of handing you a shorter plan as
+> if it were the whole answer.
 
 *Shot: the intent echo panel. If a line reads "could not be applied", stay on
 it — that line is the point.*
 
-**2:05 – 2:30 — It is yours to change**
+**1:55 – 2:20 — There is more where that came from**
 
-> Any stop can be swapped for another place Qloo returned, and the swap costs
-> nothing: those alternatives were already scored when the route was built,
-> so there is no extra call and no extra model round.
+> Every stop can be swapped for another place Qloo returned — six of them per
+> part of the plan — and below that is everything else it found. The swaps
+> cost nothing: they were all scored when the plan was built, so there is no
+> extra call and no extra model round.
 
-*Shot: open a stop's swap list, pick a different place, show the route
-reorder. Then "Copy share link" and "Save this route".*
+*Shot: open a stop's swap list, pick a different place, show the plan
+reorder and the walking time change. Then scroll to "More places Qloo
+returned" and let the count show.*
 
-**2:30 – 2:50 — Show your working**
+**2:20 – 2:38 — Yours to keep**
+
+*Click "Copy share link", then "Save this plan".*
+
+> The link carries the whole plan, so you can send it to whoever you are
+> going with. Saving keeps it on your device, and a plan you have changed
+> saves beside the original rather than over it.
+
+**2:38 – 2:52 — Show your working**
 
 *Click "Show how this was planned".*
 
 > Every step is here: each Qloo endpoint it called, the parameters, and how
 > long each took. The model chose which searches to run. It never chose the
 > order, the scoring or the reasons — those are pure functions, so the same
-> candidates always produce the same route.
+> candidates always produce the same plan.
 
-*Shot: scroll the trace entries. Pause on a `/v2/insights` line.*
+*Shot: scroll the trace entries. Pause on a `/v2/insights` line and on a
+`backfill_slots` line if one is there.*
 
-**2:50 – 2:55 — Close**
+**2:52 – 2:55 — Close**
 
-> TasteRoute. One good evening, from Qloo's taste graph, with its reasoning
-> on the table.
+> TasteRoute. A plan for the whole stretch, from Qloo's taste graph, with its
+> reasoning on the table.
 
 ## What not to claim
 
@@ -118,3 +131,5 @@ reorder. Then "Copy share link" and "Save this route".*
   so the product deliberately does not offer one.
 - Do not show the sample-data banner and call it live Qloo. If the banner is
   on screen, the video has to say the data is a labelled fixture.
+- Do not promise a club every time. A late window asks Qloo for one; where
+  Qloo lists none, the plan says so and gives you a bar instead.

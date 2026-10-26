@@ -1,9 +1,10 @@
 # TasteRoute
 
-Say the mood. Get three stops, in order, with the reason for each one.
+Say the mood and the hours. Get a plan of three to five stops, in order, with the reason for each one.
 
-TasteRoute turns a mood and a city into a three-stop evening out. An agent
-decides which questions to ask [Qloo's Taste AI](https://qloo.com); TasteRoute
+TasteRoute turns a mood, a city and a pair of hours into a plan of three to
+five stops — a morning, a day out, an evening, or a night that ends in a
+club. An agent decides which questions to ask [Qloo's Taste AI](https://qloo.com); TasteRoute
 decides what the answer is. Scoring, stop order and reason text are all
 computed from Qloo's own fields, never generated.
 
@@ -31,7 +32,7 @@ Remove Qloo and nothing works. Specifically:
 ## What you can tell it
 
 City, mood and the hours are the only required inputs; a route comes back
-without touching anything else. A collapsed "Tune this" panel adds the rest,
+without touching anything else. The options panel below adds the rest,
 and whatever you set is echoed back above the route — including anything that
 could not be applied, and why.
 
@@ -101,7 +102,7 @@ and how long each took.
 ```bash
 npm install
 cp .env.example .env.local   # then fill in your keys
-npm test                     # 412 tests, no network needed
+npm test                     # 439 tests, no network needed
 npm run dev
 ```
 
@@ -119,7 +120,7 @@ npm test          # unit tests, no network
 npm run typecheck
 ```
 
-412 unit tests, and 12 live tests that check the claims this README makes
+439 unit tests, and 12 live tests that check the claims this README makes
 about Qloo — including that two required tags intersect rather than union,
 which is the one claim no mock could ever have verified.
 

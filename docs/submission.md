@@ -6,11 +6,14 @@ TasteRoute
 
 ## Tagline
 
-Say the mood. Get three stops, in order, with the reason for each one.
+Say the mood and the hours. Get a plan of three to five stops, in order, with the reason for each one.
 
 ## What it does
 
-TasteRoute turns a mood and a city into a three-stop evening out: where to
+TasteRoute turns a mood, a city and a pair of hours into a plan of three to
+five stops. The hours decide the shape: a window starting at ten in the
+morning gets breakfast, something to do and an afternoon; one running past
+one in the morning earns a club at the end. Where to
 start, where to eat, where to finish, in walking order, with a reason attached
 to each stop that you can check.
 
@@ -95,13 +98,13 @@ that the thing is really agentic.
 TasteRoute also covers for the model where it has to. In live runs the model
 sometimes resolved tags repeatedly and never searched; sometimes it searched
 only its mood tags and came back with nothing for one part of the evening. A
-three-stop route needs all three kinds of place, so the loop nudges, rescues
+plan needs a place for every part of it, so the loop nudges, rescues
 and backfills rather than handing the user an error.
 
 ## How it was built
 
 Next.js with TypeScript, Tailwind for a mobile-first layout, the OpenAI SDK for
-the agent loop, Zod at the Qloo boundary, and Vitest for 412 unit tests that
+the agent loop, Zod at the Qloo boundary, and Vitest for 439 unit tests that
 run with no network at all, plus 12 live tests that check our claims about Qloo
 against the hackathon host.
 
