@@ -1,16 +1,36 @@
 # TasteRoute — 3-minute demo video script
 
-Target length 2:55. Shot on a phone-width browser window (the app is
-mobile-first). Everything below is spoken over screen capture; there is no
+Target length 2:55. Recorded on the desktop with the Loom browser
+extension. Everything below is spoken over screen capture; there is no
 talking head.
 
 ## Before you record
 
-- Open https://tasteroute-sepia.vercel.app in a fresh window, phone width.
+The app is mobile-first: its content column is capped at 448px and centred.
+Recorded at full desktop width that is a thin strip of app in a wide empty
+frame, and the text is too small to read back. No phone is needed to fix
+that — the browser does it:
+
+1. Resize the browser window to roughly 1000 × 800. Keep it landscape;
+   Devpost and Loom both play back landscape, and a portrait video gets
+   black bars either side on a judge's screen.
+2. Zoom the page to 150% (`Ctrl` and `+`, three presses from 100%). That
+   shrinks the CSS viewport to about 600px, so the 448px column fills
+   roughly three quarters of the frame and every label is legible.
+3. In Loom choose **Screen Only → Current Tab**. Current Tab records just
+   the page, with no browser chrome and no desktop behind it. Do not pick
+   Full Desktop: it would frame your whole screen around a small app.
+4. Turn the camera bubble off, or move it to a corner where it covers no
+   stop card.
+
+Then:
+
+- Open https://tasteroute-sepia.vercel.app in that window.
 - Clear site data, so the options panel starts empty.
 - Check the OpenRouter key has credit. A failed plan on camera is a retake.
 - Plan each of the two routes once before recording, so Qloo's results are
   warm and you know what is going to come back.
+- Loom's free tier caps a video at 5 minutes. This script is under 3.
 
 ## On the waits
 
