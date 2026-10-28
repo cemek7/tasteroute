@@ -27,7 +27,29 @@ const PENALTY = {
   duplicateCategory: 0.25,
   closed: 0.5,
   outsideWindow: 0.3,
+  /** Full weight of the across-town penalty, reached at FAR_SPAN_M beyond the range. */
+  far: 0.3,
 } as const
+
+/**
+ * Past the walkable range the proximity term is already zero, so a place 9km
+ * away scored exactly like one 3.1km away and the remaining 85% of the weight
+ * decided it. A live Abuja plan came back with a 117-minute leg that way.
+ *
+ * So distance keeps costing after the credit runs out, up to a cap: a great
+ * match across the city should lose to a decent one you can reach, but a city
+ * whose venues are all spread out still gets a plan rather than nothing.
+ */
+const FAR_SPAN_M = 5000
+
+function farPenalty(c: Candidate, anchor: ScoreContext['anchor']): number {
+  if (!anchor) return 0
+  const metres = haversineMetres({ lat: c.lat, lng: c.lng }, anchor)
+  // No coordinates is missing data, not evidence of being far away.
+  if (metres == null || metres <= PROXIMITY_RANGE_M) return 0
+  const over = metres - PROXIMITY_RANGE_M
+  return Math.min(PENALTY.far, (PENALTY.far * over) / FAR_SPAN_M)
+}
 
 function tagMatch(c: Candidate, requestedTagIds: string[]): number | null {
   if (requestedTagIds.length === 0) return null
@@ -104,6 +126,7 @@ export function scoreCandidate(
     score -= PENALTY.duplicateCategory
   }
   if (outsideWindow(c, ctx.timeWindow)) score -= PENALTY.outsideWindow
+  score -= farPenalty(c, ctx.anchor)
 
   return score
 }

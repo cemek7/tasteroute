@@ -18,7 +18,10 @@ phone; prints an estimated clock down the plan, worked out from the hours and
 the walks and labelled as an estimate, not a booking; says what Qloo's 1-4
 price band is for the stops it priced, and how many of them that was; and
 offers four presets that fill the mood, the hours and the matching options in
-one tap. A share link no longer carries the swap lists, which had grown it to
+one tap. Scoring now keeps charging for distance past the walkable range, so
+a great match across the city loses to a decent one you can reach: the same
+live Abuja request went from 131 minutes of walking and “ok” confidence to
+29 minutes and “strong”. A share link no longer carries the swap lists, which had grown it to
 a quarter of a megabyte — long enough that servers refuse the URL.
 
 Every finding from the whole-branch review is fixed: three Critical and ten

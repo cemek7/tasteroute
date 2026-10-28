@@ -203,6 +203,11 @@ Never commit a key.
   rather than curated nightlife. Of the cities tried, **Abuja** returns the
   strongest coverage and the most walkable routes, so it leads the city list.
   Where the data is thin the route says so instead of pretending.
+- Distance is weighed, not enforced. A candidate within 3km of the plan's
+  anchor earns proximity credit; past that the credit is gone and a penalty
+  grows with the extra distance, capped at 0.3 of the score. A city whose
+  venues are genuinely spread out still gets a plan — it will just have long
+  legs, and the card says "worth a taxi" when a walk passes 30 minutes.
 - A venue gets one slot. A restaurant that becomes a bar late can only be one
   stop, which is also what guarantees a place cannot appear twice.
 - We do not ask which day you are going out, so a venue open only on Mondays

@@ -132,3 +132,58 @@ describe('scoreCandidate with the weekday hours map Qloo actually returns', () =
     )
   })
 })
+
+describe('a stop across the city is not the same outing', () => {
+  // A live Abuja plan put a 9.3km leg between its first two stops: the best
+  // taste match for that phase simply sat on the other side of town. Zero
+  // proximity credit was not enough to stop it, because the other 85% of the
+  // weight still favoured it.
+  const anchor = { lat: 9.0579, lng: 7.4951 }
+
+  /** A candidate `metres` due north of the anchor. */
+  const at = (metres: number, affinity: number): Candidate => ({
+    ...base('fx-nok'),
+    id: `at-${metres}`,
+    affinity,
+    lat: anchor.lat + metres / 111_320,
+    lng: anchor.lng,
+  })
+
+  const c = ctx({ anchor })
+
+  it('lets a decent match nearby beat a better one across the city', () => {
+    const nearby = at(500, 0.75)
+    const acrossTown = at(9_300, 0.9)
+    expect(scoreCandidate(nearby, 'main', c)).toBeGreaterThan(
+      scoreCandidate(acrossTown, 'main', c),
+    )
+  })
+
+  it('keeps charging for distance past the walkable range', () => {
+    // Both score zero for proximity, so without a penalty these tie.
+    expect(scoreCandidate(at(5_000, 0.8), 'main', c)).toBeGreaterThan(
+      scoreCandidate(at(9_300, 0.8), 'main', c),
+    )
+  })
+
+  it('leaves a walkable candidate alone', () => {
+    const inRange = at(1_200, 0.8)
+    const noAnchor = scoreCandidate({ ...inRange }, 'main', ctx())
+    // Still scored on taste, not pushed down: the penalty starts beyond the
+    // range, and a 1.2km walk is a normal leg of a plan.
+    expect(scoreCandidate(inRange, 'main', c)).toBeGreaterThan(noAnchor - 0.15)
+  })
+
+  it('starts the penalty gently, with no cliff at the threshold', () => {
+    const justInside = scoreCandidate(at(3_990, 0.8), 'main', c)
+    const justOutside = scoreCandidate(at(4_010, 0.8), 'main', c)
+    expect(Math.abs(justInside - justOutside)).toBeLessThan(0.01)
+  })
+
+  it('does not treat a candidate with no coordinates as far away', () => {
+    const unplaceable = { ...base('fx-nok'), lat: null, lng: null, affinity: 0.8 }
+    expect(scoreCandidate(unplaceable, 'main', c)).toBeGreaterThan(
+      scoreCandidate(at(9_300, 0.8), 'main', c),
+    )
+  })
+})
