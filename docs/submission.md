@@ -104,7 +104,7 @@ and backfills rather than handing the user an error.
 ## How it was built
 
 Next.js with TypeScript, Tailwind for a mobile-first layout, the OpenAI SDK for
-the agent loop, Zod at the Qloo boundary, and Vitest for 445 unit tests that
+the agent loop, Zod at the Qloo boundary, and Vitest for 471 unit tests that
 run with no network at all, plus 12 live tests that check our claims about Qloo
 against the hackathon host.
 

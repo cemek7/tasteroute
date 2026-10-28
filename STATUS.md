@@ -1,6 +1,6 @@
 # TasteRoute status
 
-Last updated: 25 October 2026 (review fixes and geolocation shipped).
+Last updated: 28 October 2026 (desktop layout, plan clock, price bands, presets).
 
 ## Where it stands
 
@@ -10,8 +10,16 @@ hard requirements, a clarifying question on its own endpoint, photo-and-rating
 stop cards, vibe/occasion/party/demographic signals, a narrative, stop
 swapping, remembered preferences, and "use my location" as the radius centre.
 
-445 unit tests pass, 12 live Qloo tests pass with a key, typecheck is clean,
+471 unit tests pass, 12 live Qloo tests pass with a key, typecheck is clean,
 `next build` succeeds, and 16 browser checks pass at phone width.
+
+Since the review the app also: lays itself out for a desktop as well as a
+phone; prints an estimated clock down the plan, worked out from the hours and
+the walks and labelled as an estimate, not a booking; says what Qloo's 1-4
+price band is for the stops it priced, and how many of them that was; and
+offers four presets that fill the mood, the hours and the matching options in
+one tap. A share link no longer carries the swap lists, which had grown it to
+a quarter of a megabyte — long enough that servers refuse the URL.
 
 Every finding from the whole-branch review is fixed: three Critical and ten
 Important. The three that mattered most were all the same fault — the app

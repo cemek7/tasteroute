@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import type { Route } from '@/lib/providers/types'
 import { encodeRoute, saveRoute } from '@/lib/share/encode'
 import { swapStop } from '@/lib/route/swap'
+import { planBudget } from '@/lib/route/budget'
+import { scheduleStops } from '@/lib/route/schedule'
+import { normaliseWindow } from '@/lib/route/window'
 import { IntentEchoPanel } from './IntentEchoPanel'
 import { ProviderBanner } from './ProviderBanner'
 import { StopCard } from './StopCard'
@@ -29,6 +32,13 @@ export function RouteView({
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
   const note = CONFIDENCE_NOTE[route.confidence]
+
+  // Both are derived, so a swapped stop re-times and re-prices the plan.
+  const budget = planBudget(route.stops)
+  const schedule = scheduleStops(
+    route.stops,
+    normaliseWindow(route.narrativeWindow.startHour, route.narrativeWindow.endHour),
+  )
 
   async function copyLink() {
     const url = `${window.location.origin}/plan?r=${encodeRoute(route)}`
@@ -67,18 +77,32 @@ export function RouteView({
         <p className="mt-4 max-w-prose text-sm leading-relaxed">{route.narrative.line}</p>
       )}
 
+      {budget && (
+        <p className="mt-2 max-w-prose text-xs" style={{ color: 'var(--muted)' }}>
+          {budget.line}
+        </p>
+      )}
+
+      {/* Said once, plainly: these times are arithmetic on the hours and the
+          walks, and nothing here is booked. */}
+      <p className="mt-1 max-w-prose text-xs" style={{ color: 'var(--muted)' }}>
+        Times are an estimate from your hours and the walks between stops. Nothing
+        is booked.
+      </p>
+
       {/* The stops stay one chronological column: a grid would read
           left-to-right and break the "walk from the last place" line. The
           width a desktop has spare goes to the panel beside them, which
           follows the stops in the DOM so a phone sees the old page. */}
       <div className="lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-8">
       <ol className="mt-4 space-y-3">
-        {route.stops.map((s) => (
+        {route.stops.map((s, i) => (
           <StopCard
             key={`${s.order}-${s.candidate.id}`}
             stop={s}
             alternatives={route.alternativesBySlot[s.slot]}
             onSwap={(id) => setRoute(swapStop(route, s.slot, id))}
+            arrive={schedule[i]?.arrive}
           />
         ))}
       </ol>

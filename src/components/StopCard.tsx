@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { bandLabel } from '@/lib/route/budget'
 import type { Candidate, Stop } from '@/lib/providers/types'
 
 const SLOT_LABEL: Record<Stop['slot'], string> = {
@@ -25,14 +26,18 @@ export function StopCard({
   stop,
   alternatives = [],
   onSwap,
+  arrive,
 }: {
   stop: Stop
   alternatives?: Candidate[]
   onSwap?: (candidateId: string) => void
+  /** Estimated arrival, e.g. "7:40pm". Absent when the plan has no clock. */
+  arrive?: string
 }) {
   const [showSwap, setShowSwap] = useState(false)
   const walk = stop.walkFromPrev
   const detail = stop.candidate.detail
+  const band = bandLabel(stop.candidate.priceLevel)
 
   return (
     <li
@@ -73,6 +78,11 @@ export function StopCard({
           {SLOT_LABEL[stop.slot]}
         </span>
         <h3 className="text-lg font-semibold">{stop.candidate.name}</h3>
+        {arrive && (
+          <span className="text-xs" style={{ color: 'var(--muted)' }}>
+            from {arrive}
+          </span>
+        )}
       </div>
 
       {stop.candidate.address && (
@@ -81,9 +91,10 @@ export function StopCard({
         </p>
       )}
 
-      {(detail?.neighborhood || detail?.rating != null || detail?.openTonight != null) && (
+      {(detail?.neighborhood || detail?.rating != null || detail?.openTonight != null || band) && (
         <p className="mt-1.5 flex flex-wrap gap-x-2 text-xs" style={{ color: 'var(--muted)' }}>
           {detail?.neighborhood && <span>{detail.neighborhood}</span>}
+          {band && <span>{band}</span>}
           {detail?.rating != null && <span>{detail.rating.toFixed(1)} rated</span>}
           {detail?.openTonight === true && <span>open during your window</span>}
           {detail?.openTonight === false && (

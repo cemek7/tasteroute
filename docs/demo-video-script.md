@@ -60,8 +60,8 @@ panel open on the right. Nothing was clicked to reveal it.*
 
 > The hours are not just a filter. They decide what kind of plan this is.
 
-*Type city `Lagos`, mood `a whole day out, museums and good food`. Set the
-window to 10:00–23:00.*
+*Tap the **A day out** preset — it fills the mood and sets the window to
+10:00–20:00 — then change the city to `Lagos` and push the end to 23:00.*
 
 > Ten in the morning until eleven at night is a day, not an evening. So it
 > plans breakfast, something to do, the main meal, an afternoon, and a drink
@@ -75,13 +75,17 @@ window to 10:00–23:00.*
 *Press "Plan my evening". Speed the wait up, labelled. The plan opens on its
 own page.*
 
-> Five stops. Each card says what it is, how far the walk is, and why Qloo
-> put it there — which tags matched, which affinity score, and whether Qloo's
-> own explainability block supports it.
+> Five stops. Each card says what it is, how far the walk is, roughly when
+> you get there, and why Qloo put it there — which tags matched, which
+> affinity score, and whether Qloo's own explainability block supports it.
+> The times are worked out from your hours and the walks, and the page says
+> so: nothing here is booked. Where Qloo publishes a price band it says that
+> too, and how many of the stops it actually covers.
 
 *Shot: scroll the stop cards slowly. Pause on the "why" line and the
 evidence chips of the middle stop. Point out the walking total in the
-opening sentence.*
+opening sentence, the "from 7:40pm" beside a venue name, and the price line
+under the summary.*
 
 **1:05 – 1:30 — Requirements are not preferences**
 

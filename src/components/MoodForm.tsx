@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { Intent, Route } from '@/lib/providers/types'
+import { PRESETS } from '@/lib/intent/presets'
 import { TimeWindowPicker } from './TimeWindowPicker'
 import { TunePanel } from './TunePanel'
 import { ClarifyPrompt } from './ClarifyPrompt'
@@ -146,18 +147,31 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
         />
       </label>
 
-      <div className="flex flex-wrap gap-1.5">
-        {EXAMPLES.map((ex) => (
-          <button
-            key={ex}
-            type="button"
-            onClick={() => setMood(ex)}
-            className="rounded-full border px-2.5 py-1 text-[11px]"
-            style={{ borderColor: 'var(--border)', color: 'var(--muted)' }}
-          >
-            {ex}
-          </button>
-        ))}
+      {/* A preset fills the mood, the hours and the matching options in one
+          tap. The hours are the part people under-use, and they are what
+          decides whether the plan has a breakfast or a club in it. */}
+      <div>
+        <span className="text-xs font-medium uppercase tracking-wide" style={legend}>
+          Or start from
+        </span>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => {
+                setMood(p.mood)
+                setStartHour(p.startHour)
+                setEndHour(p.endHour)
+                setIntent({ ...intent, ...p.intent })
+              }}
+              className="rounded-full border px-2.5 py-1 text-[11px]"
+              style={{ borderColor: 'var(--border)', color: 'var(--muted)' }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <TimeWindowPicker

@@ -220,3 +220,69 @@ describe('saved routes are validated like any other stored blob', () => {
     expect(listSavedRoutes()).toEqual([])
   })
 })
+
+describe('a link carries everything the page it opens will read', () => {
+  it('survives a plan that dropped a phase, which is the plan that warns about it', () => {
+    // The warning on the page names the dropped phase, so a link to that very
+    // plan must decode. `afternoon` used to fail the schema outright, which
+    // turned "we could not fill your afternoon" into "link not readable".
+    const r = { ...route(), unfilledSlots: ['afternoon' as const] }
+    expect(decodeRoute(encodeRoute(r))?.unfilledSlots).toEqual(['afternoon'])
+  })
+
+  it('carries Qloo price levels, which the budget line is built from', () => {
+    const r = route()
+    r.stops[0].candidate = { ...r.stops[0].candidate, priceLevel: 2 }
+    expect(decodeRoute(encodeRoute(r))?.stops[0].candidate.priceLevel).toBe(2)
+  })
+})
+
+describe('a link has to fit in a URL', () => {
+  // Every candidate Qloo returns carries opening hours, tags and image URLs:
+  // about 1.7KB each. A plan offers six swaps per phase plus a dozen extras,
+  // so carrying them all produced a link a quarter of a megabyte long, which
+  // no browser bar and no server will accept.
+  const fat = () => {
+    const r = route()
+    const many = Array.from({ length: 6 }, (_, i) => ({
+      ...FIXTURE_CANDIDATES[i % FIXTURE_CANDIDATES.length],
+      id: `extra-${i}`,
+      hours: { monday: [{ opens: 'T09:00:00', closes: 'T22:00:00', closed: false }] },
+      media: { imageUrl: 'https://example.test/a.jpg', imageUrls: Array(8).fill('https://example.test/a.jpg') },
+    }))
+    return {
+      ...r,
+      alternatives: many,
+      alternativesBySlot: { open: many, main: many, close: many },
+    }
+  }
+
+  const URL_CEILING = 8000
+
+  it('stays under a length a server will serve', () => {
+    expect(encodeRoute(fat()).length).toBeLessThan(URL_CEILING)
+  })
+
+  it('keeps a saved route small too, so twenty of them fit in storage', async () => {
+    const { saveRoute } = await import('./encode')
+    const written: string[] = []
+    vi.stubGlobal('localStorage', {
+      getItem: () => null,
+      setItem: (_k: string, v: string) => void written.push(v),
+      removeItem: () => {},
+    })
+    saveRoute(fat())
+    // localStorage is about 5MB for the whole origin, and the app keeps 20.
+    expect(written[0].length).toBeLessThan(20_000)
+  })
+
+  it('still carries the plan itself: the stops, their reasons and their evidence', () => {
+    const back = decodeRoute(encodeRoute(fat()))
+    expect(back?.stops.map((s) => s.candidate.name)).toEqual(
+      fat().stops.map((s) => s.candidate.name),
+    )
+    expect(back?.stops[0].why).toBe(fat().stops[0].why)
+    expect(back?.stops[0].evidence.length).toBe(fat().stops[0].evidence.length)
+    expect(back?.narrative.line).toBe(fat().narrative.line)
+  })
+})

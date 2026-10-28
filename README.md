@@ -32,7 +32,10 @@ Remove Qloo and nothing works. Specifically:
 ## What you can tell it
 
 City, mood and the hours are the only required inputs; a route comes back
-without touching anything else. The options panel below adds the rest,
+without touching anything else. Four presets — date night, food crawl, a day
+out, big night — fill the mood, the hours and the matching options in one tap,
+because the hours are the input people under-use and they are what decides
+whether the plan has a breakfast or a club in it. The options panel below adds the rest,
 and whatever you set is echoed back above the route — including anything that
 could not be applied, and why.
 
@@ -102,7 +105,7 @@ and how long each took.
 ```bash
 npm install
 cp .env.example .env.local   # then fill in your keys
-npm test                     # 445 tests, no network needed
+npm test                     # 471 tests, no network needed
 npm run dev
 ```
 
@@ -120,7 +123,7 @@ npm test          # unit tests, no network
 npm run typecheck
 ```
 
-445 unit tests, and 12 live tests that check the claims this README makes
+471 unit tests, and 12 live tests that check the claims this README makes
 about Qloo — including that two required tags intersect rather than union,
 which is the one claim no mock could ever have verified.
 
@@ -204,9 +207,18 @@ Never commit a key.
   stop, which is also what guarantees a place cannot appear twice.
 - We do not ask which day you are going out, so a venue open only on Mondays
   counts as open.
-- A budget can only exclude places that publish a price level, which is about
-  one in five. The echo says so rather than implying the whole route was
-  priced.
+- A budget can only exclude places that publish a price level, and most do
+  not. Measured against the live host on 28 Oct 2026, over 40 places each:
+  Abuja 11, Lagos 4, Nairobi 2. So the plan's price line names the band and
+  how many stops it covers — "mid-range where Qloo has a price, 2 of 3" —
+  and says nothing at all when Qloo priced none of them.
+- Qloo also publishes `price_range`, but where it is populated it carries
+  hotel nightly rates in dollars, so the app does not show it. There is no
+  menu, no dish price and no currency anywhere in Qloo's place data.
+- The clock down the plan is arithmetic, not a reservation: the hours you
+  gave, the walk between each pair of stops, and a typical length for each
+  kind of stop. The page says so under the plan. Tight hours shorten the
+  stops rather than pushing the plan past the end you chose.
 - There is no step-free tag in Qloo's vocabulary — a query for it returns
   parking and wifi — so the product does not offer one. The five wheelchair
   tags Qloo does publish are offered instead.

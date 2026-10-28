@@ -25,6 +25,8 @@ const candidateShape = z.object({
   address: z.string().nullable().default(null),
   affinity: z.number().nullable().default(null),
   popularity: z.number().nullable().default(null),
+  // Absent and null both mean Qloo published no price, never 'cheap'.
+  priceLevel: z.number().nullish(),
   isClosed: z.boolean().nullable().default(null),
   hours: z.unknown().default(null),
   tags: z
@@ -95,7 +97,11 @@ export const routeShape = z.object({
   confidence: z.enum(['strong', 'ok', 'weak']),
   providerKind: z.enum(['qloo', 'fixture']),
   alternatives: z.array(candidateShape).default([]),
-  unfilledSlots: z.array(z.enum(['open', 'main', 'close'])).default([]),
+  // Every phase a plan can drop, not just the three the first build had:
+  // the page that carries this link is the one warning about the gap.
+  unfilledSlots: z
+    .array(z.enum(['morning', 'activity', 'open', 'main', 'afternoon', 'close', 'late']))
+    .default([]),
   // Optional with an empty default, so links made before intent existed
   // still decode.
   intentEcho: z
@@ -150,11 +156,39 @@ function fromBase64Url(s: string): string | null {
   }
 }
 
+/**
+ * What a link needs to carry: the evening itself. Not how it was planned
+ * (the trace), not what else was on offer (the swap lists and the extras),
+ * and not the parts of a candidate the shared page never reads — Qloo's raw
+ * opening hours, its tag list and its spare photos, which together run to
+ * about 1.5KB per place.
+ *
+ * A plan with six swaps per phase and a dozen extras encoded to a quarter of
+ * a megabyte. Servers refuse a URL that long, so "Copy share link" produced a
+ * link that silently failed for whoever opened it.
+ */
+function shareable(route: Route): Route {
+  return {
+    ...route,
+    trace: [],
+    alternatives: [],
+    alternativesBySlot: {},
+    stops: route.stops.map((s) => ({
+      ...s,
+      candidate: {
+        ...s.candidate,
+        hours: null,
+        tags: [],
+        media: s.candidate.media?.imageUrl
+          ? { imageUrl: s.candidate.media.imageUrl }
+          : undefined,
+      },
+    })),
+  }
+}
+
 export function encodeRoute(route: Route): string {
-  // The trace can run to thousands of characters and is not part of what gets
-  // shared: the link carries the evening, not how it was planned.
-  const { trace: _trace, ...rest } = route
-  return toBase64Url(JSON.stringify({ ...rest, trace: [] }))
+  return toBase64Url(JSON.stringify(shareable(route)))
 }
 
 export function decodeRoute(encoded: string): Route | null {
@@ -181,7 +215,10 @@ export function decodeRoute(encoded: string): Route | null {
 export function saveRoute(route: Route): void {
   try {
     const existing = listSavedRoutes().filter((r) => r.id !== route.id)
-    const next = [{ ...route, trace: [] }, ...existing].slice(0, 20)
+    // Saved the same way it is shared. Storage is about 5MB for the whole
+    // origin, and a plan with its swap lists is 150KB+ — twenty of those
+    // overflow it, and an overflowing write fails silently.
+    const next = [shareable(route), ...existing].slice(0, 20)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
   } catch {
     // Private browsing or blocked storage. Saving is a convenience, not a
