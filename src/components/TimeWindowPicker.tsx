@@ -35,7 +35,7 @@ export function TimeWindowPicker({
     background: 'var(--card)',
     color: 'var(--fg)',
   }
-  const legend = { color: 'var(--muted)' }
+  const legend = { color: 'var(--label)' }
 
   return (
     <div>

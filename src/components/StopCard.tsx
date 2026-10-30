@@ -64,7 +64,7 @@ export function StopCard({
       )}
       <div className="p-4">
       {walk && (
-        <p className="mb-3 text-xs" style={{ color: 'var(--muted)' }}>
+        <p className="mb-3 text-xs" style={{ color: 'var(--warm)' }}>
           {walk.minutes} min walk · {walk.metres.toLocaleString()} m
           {walk.minutes > 30 && ' · worth a taxi'}
         </p>
@@ -73,13 +73,13 @@ export function StopCard({
       <div className="flex flex-wrap items-baseline gap-2">
         <span
           className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-          style={{ background: 'var(--accent)', color: '#0a0a0a' }}
+          style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}
         >
           {SLOT_LABEL[stop.slot]}
         </span>
         <h3 className="text-lg font-semibold">{stop.candidate.name}</h3>
         {arrive && (
-          <span className="text-xs" style={{ color: 'var(--muted)' }}>
+          <span className="text-xs" style={{ color: 'var(--warm)' }}>
             from {arrive}
           </span>
         )}
@@ -134,7 +134,7 @@ export function StopCard({
             type="button"
             onClick={() => setShowSwap(!showSwap)}
             className="text-xs underline"
-            style={{ color: 'var(--muted)' }}
+            style={{ color: 'var(--accent)' }}
           >
             {showSwap ? 'keep this one' : 'swap this stop'}
           </button>

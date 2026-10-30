@@ -31,7 +31,7 @@ export function ClarifyPrompt({
             type="button"
             onClick={() => onAnswer(o)}
             className="rounded-md px-3 py-2 text-sm font-medium"
-            style={{ background: 'var(--accent)', color: '#0a0a0a' }}
+            style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}
           >
             {o}
           </button>

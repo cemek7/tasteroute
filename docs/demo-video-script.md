@@ -1,6 +1,6 @@
 # TasteRoute — 3-minute demo video script
 
-Target length 2:55. Recorded on the desktop with the Loom browser
+Target length 2:51. Recorded on the desktop with the Loom browser
 extension. Everything below is spoken over screen capture; there is no
 talking head.
 
@@ -101,7 +101,7 @@ under the summary.*
 
 *Shot: the Must-have chips and the budget row.*
 
-**1:30 – 1:55 — What it did with what you asked**
+**1:30 – 1:52 — What it did with what you asked**
 
 *Plan again. Speed the wait up, labelled.*
 
@@ -115,7 +115,7 @@ under the summary.*
 *Shot: the intent echo panel. If a line reads "could not be applied", stay on
 it — that line is the point.*
 
-**1:55 – 2:20 — There is more where that came from**
+**1:52 – 2:10 — There is more where that came from**
 
 > Every stop can be swapped for another place Qloo returned — six of them per
 > part of the plan — and below that is everything else it found. The swaps
@@ -126,7 +126,7 @@ it — that line is the point.*
 reorder and the walking time change. Then scroll to "More places Qloo
 returned" and let the count show.*
 
-**2:20 – 2:38 — Yours to keep**
+**2:10 – 2:24 — Yours to keep**
 
 *Click "Copy share link", then "Save this plan".*
 
@@ -134,7 +134,7 @@ returned" and let the count show.*
 > going with. Saving keeps it on your device, and a plan you have changed
 > saves beside the original rather than over it.
 
-**2:38 – 2:52 — Show your working**
+**2:24 – 2:44 — Show your working**
 
 *Click "Show how this was planned".*
 
@@ -146,7 +146,7 @@ returned" and let the count show.*
 *Shot: scroll the trace entries. Pause on a `/v2/insights` line and on a
 `backfill_slots` line if one is there.*
 
-**2:52 – 2:55 — Close**
+**2:44 – 2:51 — Close**
 
 > TasteRoute. A plan for the whole stretch, from Qloo's taste graph, with its
 > reasoning on the table.

@@ -100,7 +100,7 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
     background: 'var(--card)',
     color: 'var(--fg)',
   }
-  const legend = { color: 'var(--muted)' }
+  const legend = { color: 'var(--label)' }
 
   return (
     <form onSubmit={submit} className="mt-8 space-y-4">
@@ -193,7 +193,7 @@ export function MoodForm({ onRoute }: { onRoute: (r: Route) => void }) {
         type="submit"
         disabled={busy || pending !== null}
         className="w-full rounded-md px-4 py-3 text-base font-semibold disabled:opacity-60"
-        style={{ background: 'var(--accent)', color: '#0a0a0a' }}
+        style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}
       >
         {busy ? 'Asking Qloo…' : 'Plan my evening'}
       </button>

@@ -17,7 +17,7 @@ export default function Error({ reset }: { error: Error; reset: () => void }) {
         <button
           onClick={reset}
           className="flex-1 rounded-md px-4 py-3 text-base font-semibold"
-          style={{ background: 'var(--accent)', color: '#0a0a0a' }}
+          style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}
         >
           Try again
         </button>

@@ -23,3 +23,7 @@ qloo-cache/
 .vercel
 .env*
 !.env.example
+
+# Demo recording assets. theme-plan.png and any plan capture contain live
+# Qloo response data, which must not enter the public repo.
+docs/media/

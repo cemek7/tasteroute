@@ -1,16 +1,91 @@
 @import "tailwindcss";
 
+/*
+ * Midnight black, electric blue, cantaloupe orange.
+ *
+ * Blue is the places: the venue badges, the controls, the links. Cantaloupe
+ * is everything about the journey rather than the destination — the walk
+ * between two stops, the time you get there — and it is also the colour the
+ * app uses when it admits a limit. Those two readings sit together on
+ * purpose: both are the app telling you about the shape of the evening
+ * rather than selling you a venue.
+ *
+ * The blue is not confined to the buttons. Every neutral here is pulled a
+ * few degrees towards it — the greys, the borders, the card fill — so the
+ * page reads as blue-black rather than black with a blue button on it.
+ */
 :root {
-  --bg: #0a0a0a;
-  --fg: #fafafa;
-  --accent: #00ff88;
-  --muted: #a1a1aa;
-  --card: #141414;
-  --border: #262626;
+  --bg: #04050b;
+  --fg: #eaf2ff;
+  --muted: #8ba2c6;
+  --card: #0a1120;
+  --border: #1d2b42;
+  /* Field labels. Dimmer than the accent so they frame an answer instead
+   * of competing with it, but unmistakably the same blue. */
+  --label: #4aa8e8;
+
+  --accent: #00b2ff;
+  /* Text and icons that sit ON the accent. Near-black, not pure, so a
+   * button does not look like a hole punched in the page. */
+  --accent-ink: #04121f;
+  --accent-soft: rgba(0, 178, 255, 0.14);
+
+  --warm: #ff9e5e;
+  --warm-bg: #241307;
+  --warm-border: #9a5418;
+
+  /* The caveat block is the same cantaloupe, named for what it means. */
+  --warn: var(--warm);
+  --warn-bg: var(--warm-bg);
+  --warn-border: var(--warm-border);
+}
+
+/* Anything the app is owning up to: sample data instead of live Qloo, a
+ * requirement it could not apply, a part of the day it could not fill. The
+ * thick left edge is so it reads as a margin note, not an error. */
+.caveat {
+  border-left-width: 3px;
 }
 
 body {
-  background: var(--bg);
+  /* Two cold glows, not a flat fill. Fixed, so scrolling a long plan does
+   * not drag the light down the page with it. */
+  background:
+    radial-gradient(1100px 620px at 50% -10%, rgba(0, 178, 255, 0.13), transparent 70%),
+    radial-gradient(760px 520px at 108% 104%, rgba(0, 178, 255, 0.07), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
   color: var(--fg);
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* Every control shares one blue-edged resting state and one blue focus
+ * ring, so the form looks like a single instrument rather than a stack of
+ * browser defaults. */
+input,
+select,
+textarea {
+  border-color: var(--border);
+  accent-color: var(--accent);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: #2d4463;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--fg);
 }

@@ -66,8 +66,8 @@ export function RouteView({
 
       {note && (
         <p
-          className="mt-3 rounded-md border px-3 py-2 text-xs"
-          style={{ borderColor: '#854d0e', background: '#1c1405', color: '#fde68a' }}
+          className="mt-3 rounded-md border px-3 py-2 text-xs caveat"
+          style={{ borderColor: 'var(--warn-border)', background: 'var(--warn-bg)', color: 'var(--warn)' }}
         >
           {note}
         </p>
@@ -132,8 +132,8 @@ export function RouteView({
 
       {route.unfilledSlots.length > 0 && (
         <p
-          className="mt-6 rounded-md border px-3 py-2 text-xs"
-          style={{ borderColor: '#854d0e', background: '#1c1405', color: '#fde68a' }}
+          className="mt-6 rounded-md border px-3 py-2 text-xs caveat"
+          style={{ borderColor: 'var(--warn-border)', background: 'var(--warn-bg)', color: 'var(--warn)' }}
         >
           Nothing Qloo returned fitted the{' '}
           {route.unfilledSlots.map((s) => s.replace(/_/g, ' ')).join(' or ')} part of
@@ -144,7 +144,7 @@ export function RouteView({
 
       {route.alternatives.length > 0 && (
         <div className="mt-6">
-          <h4 className="text-sm font-semibold">
+          <h4 className="text-sm font-semibold" style={{ color: 'var(--warm)' }}>
             More places Qloo returned ({route.alternatives.length})
           </h4>
           <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>

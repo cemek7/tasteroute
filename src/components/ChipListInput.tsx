@@ -34,7 +34,7 @@ export function ChipListInput({
 
   return (
     <fieldset>
-      <legend className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+      <legend className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--label)' }}>
         {legend}
       </legend>
       {values.length > 0 && (

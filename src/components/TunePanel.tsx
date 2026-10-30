@@ -41,7 +41,7 @@ export function TunePanel({
         type="button"
         onClick={() => setOpen(!open)}
         className="text-xs underline"
-        style={{ color: 'var(--muted)' }}
+        style={{ color: 'var(--accent)' }}
       >
         {open ? 'Hide these options' : 'Show more options'}
       </button>
@@ -54,7 +54,7 @@ export function TunePanel({
           <label className="block">
             <span
               className="flex justify-between text-[11px] uppercase tracking-wide"
-              style={{ color: 'var(--muted)' }}
+              style={{ color: 'var(--label)' }}
             >
               <span>The well-known ones</span>
               <span>Hidden gems</span>
@@ -71,7 +71,7 @@ export function TunePanel({
             />
           </label>
           <fieldset>
-            <legend className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+            <legend className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--label)' }}>
               Vibe
             </legend>
             <div className="mt-1 flex flex-wrap gap-1.5">
@@ -100,7 +100,7 @@ export function TunePanel({
           </fieldset>
 
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+            <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--label)' }}>
               The night is for
             </span>
             <select
@@ -125,7 +125,7 @@ export function TunePanel({
 
           <div className="flex gap-3">
             <label className="flex-1">
-              <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+              <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--label)' }}>
                 Going with
               </span>
               <select
@@ -153,7 +153,7 @@ export function TunePanel({
               </select>
             </label>
             <label className="w-24">
-              <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+              <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--label)' }}>
                 How many
               </span>
               <select
@@ -177,7 +177,7 @@ export function TunePanel({
           </div>
 
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+            <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--label)' }}>
               You are
             </span>
             <select
@@ -199,7 +199,7 @@ export function TunePanel({
           </label>
 
           <fieldset>
-            <legend className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+            <legend className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--label)' }}>
               Budget
             </legend>
             <div className="mt-1 flex gap-1.5">
@@ -224,7 +224,7 @@ export function TunePanel({
           </fieldset>
 
           <fieldset>
-            <legend className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+            <legend className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--label)' }}>
               Must have
             </legend>
             <div className="mt-1 flex flex-wrap gap-1.5">
@@ -304,7 +304,7 @@ export function TunePanel({
           />
 
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+            <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--label)' }}>
               Stay within
             </span>
             <select
@@ -340,7 +340,7 @@ export function TunePanel({
               onChange({})
             }}
             className="text-xs underline"
-            style={{ color: 'var(--muted)' }}
+            style={{ color: 'var(--accent)' }}
           >
             forget my preferences
           </button>

@@ -81,7 +81,7 @@ export function UseMyLocation({
           onClick={ask}
           disabled={state === 'asking'}
           className="text-xs underline disabled:opacity-60"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--accent)' }}
         >
           {state === 'asking' ? 'asking your browser…' : 'use my location instead of the city centre'}
         </button>

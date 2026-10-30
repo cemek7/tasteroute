@@ -18,8 +18,8 @@ export function IntentEchoPanel({ echo }: { echo: IntentEcho }) {
       {echo.ignored.map((i) => (
         <p
           key={i.label}
-          className="rounded border px-2 py-1"
-          style={{ borderColor: '#854d0e', background: '#1c1405', color: '#fde68a' }}
+          className="rounded border px-2 py-1 caveat"
+          style={{ borderColor: 'var(--warn-border)', background: 'var(--warn-bg)', color: 'var(--warn)' }}
         >
           <strong>{i.label} could not be applied</strong> — {i.reason}
         </p>

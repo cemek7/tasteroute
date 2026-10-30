@@ -12,7 +12,7 @@ export function TracePanel({ trace }: { trace: TraceEntry[] }) {
       <button
         onClick={() => setOpen(!open)}
         className="text-xs underline"
-        style={{ color: 'var(--muted)' }}
+        style={{ color: 'var(--accent)' }}
       >
         {open ? 'Hide' : 'Show'} how this was planned ({trace.length} steps)
       </button>
