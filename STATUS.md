@@ -10,7 +10,7 @@ hard requirements, a clarifying question on its own endpoint, photo-and-rating
 stop cards, vibe/occasion/party/demographic signals, a narrative, stop
 swapping, remembered preferences, and "use my location" as the radius centre.
 
-471 unit tests pass, 12 live Qloo tests pass with a key, typecheck is clean,
+476 unit tests pass, 12 live Qloo tests pass with a key, typecheck is clean,
 `next build` succeeds, and 16 browser checks pass at phone width.
 
 Since the review the app also: lays itself out for a desktop as well as a
